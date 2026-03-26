@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RRO — Static Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0f14;
+  --bg-card: #151920;
+  --bg-card-hover: #1a2028;
+  --border: #252d3a;
+  --border-active: #3a7bfd;
+  --text: #c9d1d9;
+  --text-dim: #6e7681;
+  --text-bright: #e6edf3;
+  --accent-blue: #3a7bfd;
+  --accent-green: #2ea043;
+  --accent-amber: #d29922;
+  --accent-red: #da3633;
+  --accent-purple: #8b5cf6;
+  --accent-teal: #2dd4bf;
+  --fastest: #3a7bfd;
+  --safest: #2ea043;
+  --creative: #d29922;
+  --relaxed: #8b5cf6;
+  --font-mono: 'DM Mono', 'Menlo', monospace;
+  --font-serif: 'Source Serif 4', 'Georgia', serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- HEADER --- */
+.site-header {
+  border-bottom: 1px solid var(--border);
+  padding: 2rem 0 1.5rem;
+  text-align: center;
+}
+.site-header h1 {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+}
+.site-header .subtitle {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  margin-top: 0.3rem;
+}
+.site-header .version-badge {
+  display: inline-block;
+  margin-top: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.2em 0.7em;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-dim);
+}
+
+/* --- LAYOUT --- */
+.container { max-width: 1120px; margin: 0 auto; padding: 0 2rem; }
+
+section {
+  padding: 3rem 0;
+  border-bottom: 1px solid var(--border);
+}
+section:last-of-type { border-bottom: none; }
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.4rem;
+}
+.section-title {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 1.5rem;
+}
+
+/* --- SCENARIO BANNER --- */
+.scenario-banner {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.scenario-banner .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.scenario-banner .field-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.scenario-banner .field-value {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  color: var(--text-bright);
+  font-weight: 600;
+}
+
+/* --- PORTFOLIO CARDS --- */
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.route-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.2rem 1.3rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.route-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--card-accent);
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.route-card:hover {
+  border-color: var(--card-accent);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+}
+.route-card:hover::before { opacity: 1; }
+.route-card.active {
+  border-color: var(--card-accent);
+}
+.route-card.active::before { opacity: 1; }
+
+.card-strategy {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--card-accent);
+  margin-bottom: 0.6rem;
+}
+.card-label-de {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 0.9rem;
+}
+
+.card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 1rem;
+}
+.card-stat {
+  display: flex;
+  flex-direction: column;
+}
+.card-stat .stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.card-stat .stat-value {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.card-legs {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  line-height: 1.8;
+  display: none;
+}
+.route-card.active .card-legs { display: block; }
+
+.leg-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.leg-mode {
+  display: inline-block;
+  padding: 0.1em 0.4em;
+  border-radius: 2px;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+.leg-mode.ice { background: #3a1820; color: #da3633; }
+.leg-mode.re { background: #1a2a20; color: #2ea043; }
+.leg-mode.bus { background: #2a2818; color: #d29922; }
+.leg-mode.walk { background: #1a1a2a; color: #8b5cf6; }
+.leg-mode.sbahn { background: #1a2535; color: #3a7bfd; }
+.leg-mode.taxi { background: #2a2020; color: #da8633; }
+.leg-mode.tram { background: #1a2828; color: #2dd4bf; }
+
+.card-tags {
+  margin-top: 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.card-tag {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  padding: 0.15em 0.5em;
+  border-radius: 2px;
+  border: 1px solid;
+}
+.card-tag.comfort { border-color: #2ea04355; color: #2ea043; }
+.card-tag.risk { border-color: #d2992255; color: #d29922; }
+.card-tag.warn { border-color: #da363355; color: #da3633; }
+
+/* --- PIPELINE --- */
+.pipeline-container {
+  overflow-x: auto;
+  padding: 1rem 0;
+}
+
+.pipeline-svg-wrap {
+  min-width: 800px;
+  display: flex;
+  justify-content: center;
+}
+
+.pipeline-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  justify-content: center;
+  flex-wrap: nowrap;
+}
+
+.pipe-node {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.8rem 1rem;
+  text-align: center;
+  min-width: 110px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  cursor: default;
+}
+.pipe-node.active-step {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 12px #3a7bfd22;
+}
+.pipe-node .node-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-bright);
+}
+.pipe-node .node-sub {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--text-dim);
+  margin-top: 0.2rem;
+}
+
+.pipe-arrow {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
+  padding: 0 0.4rem;
+  flex-shrink: 0;
+  transition: color 0.25s;
+}
+.pipe-arrow.active-arrow { color: var(--accent-blue); }
+
+.signal-legend {
+  margin-top: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+}
+.signal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.8rem 1rem;
+  transition: border-color 0.2s;
+}
+.signal-card:hover { border-color: var(--border-active); }
+.signal-card .sig-type {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.3rem;
+}
+.signal-card .sig-desc {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.signal-card .sig-effect {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-top: 0.25rem;
+}
+.sig-c .sig-type { color: var(--accent-red); }
+.sig-b .sig-type { color: var(--accent-amber); }
+.sig-a .sig-type { color: var(--accent-blue); }
+
+/* --- MAP --- */
+.map-container {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  min-height: 420px;
+}
+
+.corridor-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.map-tooltip {
+  position: absolute;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+  max-width: 200px;
+}
+.map-tooltip.visible { opacity: 1; }
+.map-tooltip .tt-name {
+  font-weight: 500;
+  color: var(--text-bright);
+}
+.map-tooltip .tt-detail {
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+}
+
+.map-legend {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.6rem 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+}
+.map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+  color: var(--text-dim);
+}
+.map-legend-item:last-child { margin-bottom: 0; }
+.map-legend-swatch {
+  width: 16px;
+  height: 3px;
+  border-radius: 1px;
+}
+
+/* --- FOOTER --- */
+.site-footer {
+  padding: 2rem 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+}
+.site-footer a {
+  color: var(--text-dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.site-footer a:hover { color: var(--text); }
+
+/* --- ANIMATIONS --- */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+  animation: fadeSlideUp 0.4s ease-out both;
+}
+.delay-1 { animation-delay: 0.08s; }
+.delay-2 { animation-delay: 0.16s; }
+.delay-3 { animation-delay: 0.24s; }
+.delay-4 { animation-delay: 0.32s; }
+
+/* --- NAV LINKS --- */
+.back-link {
+  display: inline-block;
+  margin-top: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+.back-link:hover {
+  color: var(--text);
+  border-bottom-color: var(--text-dim);
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 640px) {
+  .container { padding: 0 1rem; }
+  .scenario-banner { gap: 1rem; }
+  .portfolio-grid { grid-template-columns: 1fr; }
+  .pipeline-row { transform: scale(0.85); transform-origin: left center; }
+  .signal-legend { grid-template-columns: 1fr; }
+}
+
+/* Pipeline step animation */
+.pipe-node, .pipe-arrow {
+  opacity: 0;
+  animation: fadeSlideUp 0.35s ease-out both;
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <h1>Robust Route Optimiser</h1>
+    <div class="subtitle">State-dependent multimodal routing — static demo</div>
+    <span class="version-badge">Coastline v0.6.0-rc1 · Pre-implementation mock-up</span>
+  </div>
+</header>
+
+<!-- SECTION 1: Portfolio -->
+<section id="portfolio">
+  <div class="container">
+    <div class="section-label">Portfolio Output</div>
+    <div class="section-title">Four strategies, one corridor</div>
+
+    <div class="scenario-banner animate-in">
+      <div class="field">
+        <span class="field-label">Origin</span>
+        <span class="field-value">Haßlinghausen</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Destination</span>
+        <span class="field-value">Freiburg (Breisgau) Hbf</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Departure</span>
+        <span class="field-value">Tue 15 Apr 2026, 08:00</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Mode</span>
+        <span class="field-value">Phase A — deterministic</span>
+      </div>
+    </div>
+
+    <div class="portfolio-grid" id="portfolioGrid">
+      <!-- Cards injected by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2: Pipeline -->
+<section id="pipeline">
+  <div class="container">
+    <div class="section-label">Signal Processing Pipeline</div>
+    <div class="section-title">From base graph to effective travel time</div>
+
+    <div class="pipeline-container">
+      <div class="pipeline-row" id="pipelineRow">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+
+    <div class="signal-legend" id="signalLegend">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3: Map -->
+<section id="map">
+  <div class="container">
+    <div class="section-label">Corridor Geometry</div>
+    <div class="section-title">Haßlinghausen → Freiburg — hubs &amp; backbone</div>
+
+    <div class="map-container" id="mapContainer">
+      <svg class="corridor-svg" id="corridorSvg" viewBox="0 0 1000 562" preserveAspectRatio="xMidYMid meet">
+        <!-- Rendered by JS -->
+      </svg>
+      <div class="map-tooltip" id="mapTooltip">
+        <div class="tt-name"></div>
+        <div class="tt-detail"></div>
+      </div>
+      <div class="map-legend">
+        <div class="map-legend-item"><span class="map-legend-swatch" style="background:#3a7bfd"></span> ICE backbone</div>
+        <div class="map-legend-item"><span class="map-legend-swatch" style="background:#2ea043"></span> RE / regional</div>
+        <div class="map-legend-item"><span class="map-legend-swatch" style="background:#d29922"></span> Creative detour</div>
+        <div class="map-legend-item"><span class="map-legend-swatch" style="background:#8b5cf6"></span> First / last mile</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <p style="margin-bottom:0.8rem; color:#d29922; font-size:0.7rem; line-height:1.7;">Illustrative route data only — not generated by the scoring engine. In Phase A, Q₀.₈(T_eff) ≡ T_schedule (no stochastic modelling yet). Categories are derived from the same scalar objective J(r) and reporting metrics; they do not represent independent optimisation criteria. C(r) is defined operationally in Coastline §0.3 as 1 − (km on reference corridors R / total backbone km); the values shown here are hand-assigned to illustrate the metric's role — they will be computed from GTFS data once reference corridors R are calibrated. Lounge tags indicate potential lounge locations only — access depends on ticket class, BahnCard status, and fare rules.</p>
+    <a href="../" class="back-link">← Back to documentation</a>
+    <p style="margin-top:0.8rem;">RRO · Open-Science Harbour · Local stewardship only · Not externally endorsed</p>
+    <p>Ulrich Warring · Physikalisches Institut, Universität Freiburg</p>
+  </div>
+</footer>
+
+<script>
+// =====================================================
+// DATA — realistic example routes for the corridor
+// =====================================================
+
+const routes = [
+  {
+    // J(r) = T_eff - α_C·C(r) = 287 - 0.7·0.00 = 287.00
+    id: 'fastest',
+    strategy: 'Fastest',
+    labelDe: '„Schnellste"',
+    accent: '#3a7bfd',
+    arrival: '12:47',
+    duration: '4h 47min',
+    transfers: 2,
+    confidence: 'deterministic',
+    price: '€71.90',
+    creativity: '0.00',
+    jScore: '287.00',
+    legs: [
+      { mode: 'bus', label: 'Bus 549', detail: 'Haßlinghausen → Hagen Hbf', time: '08:00–08:38' },
+      { mode: 'ice', label: 'ICE 917', detail: 'Hagen Hbf → Mannheim Hbf', time: '08:55–11:28' },
+      { mode: 'ice', label: 'ICE 275', detail: 'Mannheim Hbf → Freiburg Hbf', time: '11:42–12:47' },
+    ],
+    tags: [
+      { type: 'comfort', text: 'Lounge Mannheim (ticket/status)' },
+    ],
+    hubKey: 'hagen',
+  },
+  {
+    // J(r) = 322 - 0.7·0.08 = 321.94
+    // Robust: single ICE, no rail transfer, reliable taxi first-mile
+    id: 'safest',
+    strategy: 'Most Robust',
+    labelDe: '„Sicherste"',
+    accent: '#2ea043',
+    arrival: '13:22',
+    duration: '5h 22min',
+    transfers: 1,
+    confidence: 'deterministic',
+    price: '€79.90',
+    creativity: '0.08',
+    jScore: '321.94',
+    legs: [
+      { mode: 'taxi', label: 'Taxi', detail: 'Haßlinghausen → Wuppertal Hbf', time: '08:00–08:25' },
+      { mode: 'ice', label: 'ICE 615', detail: 'Wuppertal Hbf → Köln → Mannheim → Freiburg Hbf', time: '09:02–13:22' },
+    ],
+    tags: [
+      { type: 'comfort', text: 'Through-ICE, no rail transfer' },
+      { type: 'comfort', text: 'Lounge Köln (ticket/status)' },
+    ],
+    hubKey: 'wuppertal',
+  },
+  {
+    // J(r) = 378 - 0.7·0.72 = 377.50
+    // Creative: Siegen–Frankfurt detour avoids reference corridors
+    id: 'creative',
+    strategy: 'Most Creative',
+    labelDe: '„Überraschung"',
+    accent: '#d29922',
+    arrival: '14:18',
+    duration: '6h 18min',
+    transfers: 4,
+    confidence: 'deterministic',
+    price: '€49.90',
+    creativity: '0.72',
+    jScore: '377.50',
+    legs: [
+      { mode: 'walk', label: 'Walk', detail: 'Haßlinghausen → Schee Bf', time: '08:00–08:22' },
+      { mode: 're', label: 'RB 49', detail: 'Schee → Hagen Hbf', time: '08:31–08:52' },
+      { mode: 're', label: 'RE 7', detail: 'Hagen → Siegen', time: '09:10–10:18' },
+      { mode: 're', label: 'RE 99', detail: 'Siegen → Gießen → Frankfurt Hbf', time: '10:35–12:42' },
+      { mode: 'ice', label: 'ICE 71', detail: 'Frankfurt Hbf → Freiburg Hbf', time: '13:02–14:18' },
+    ],
+    tags: [
+      { type: 'comfort', text: 'Lounge Frankfurt (ticket/status)' },
+      { type: 'risk', text: 'Tight transfer Siegen (17 min)' },
+      { type: 'risk', text: '4 transfers' },
+    ],
+    hubKey: 'schee',
+  },
+  {
+    // J(r) = 340 - 0.7·0.00 = 340.00
+    // Relaxed: taxi to Hagen, single through-ICE, 0 rail transfers
+    // DISTINCT from safest: different hub (Hagen not Wuppertal), different ICE
+    id: 'relaxed',
+    strategy: 'Low Transfer',
+    labelDe: '„Entspannt"',
+    accent: '#8b5cf6',
+    arrival: '13:40',
+    duration: '5h 40min',
+    transfers: 1,
+    confidence: 'deterministic',
+    price: '€71.90',
+    creativity: '0.00',
+    jScore: '340.00',
+    legs: [
+      { mode: 'taxi', label: 'Taxi', detail: 'Haßlinghausen → Hagen Hbf', time: '08:00–08:30' },
+      { mode: 'ice', label: 'ICE 611', detail: 'Hagen Hbf → Köln → Mannheim → Freiburg Hbf', time: '09:05–13:40' },
+    ],
+    tags: [
+      { type: 'comfort', text: 'Through-ICE, no rail transfer' },
+      { type: 'comfort', text: 'Lounge Mannheim (ticket/status)' },
+    ],
+    hubKey: 'hagen',
+  },
+];
+
+// =====================================================
+// PORTFOLIO CARDS
+// =====================================================
+
+const grid = document.getElementById('portfolioGrid');
+let activeCard = null;
+
+routes.forEach((r, i) => {
+  const card = document.createElement('div');
+  card.className = `route-card animate-in delay-${i + 1}`;
+  card.style.setProperty('--card-accent', r.accent);
+  card.dataset.routeId = r.id;
+
+  const modeTag = (leg) => `<span class="leg-mode ${leg.mode}">${leg.label}</span>`;
+
+  card.innerHTML = `
+    <div class="card-strategy">${r.strategy}</div>
+    <div class="card-label-de">${r.labelDe}</div>
+    <div class="card-stats">
+      <div class="card-stat">
+        <span class="stat-label">Arrival</span>
+        <span class="stat-value">${r.arrival}</span>
+      </div>
+      <div class="card-stat">
+        <span class="stat-label">Duration</span>
+        <span class="stat-value">${r.duration}</span>
+      </div>
+      <div class="card-stat">
+        <span class="stat-label">Transfers</span>
+        <span class="stat-value">${r.transfers}</span>
+      </div>
+      <div class="card-stat">
+        <span class="stat-label">Confidence</span>
+        <span class="stat-value">${r.confidence}</span>
+      </div>
+      <div class="card-stat">
+        <span class="stat-label">C(r)</span>
+        <span class="stat-value">${r.creativity}</span>
+      </div>
+      <div class="card-stat">
+        <span class="stat-label">J(r)</span>
+        <span class="stat-value">${r.jScore} min</span>
+      </div>
+    </div>
+    <div class="card-tags">
+      ${r.tags.map(t => `<span class="card-tag ${t.type}">${t.text}</span>`).join('')}
+    </div>
+    <div class="card-legs">
+      ${r.legs.map(l => `
+        <div class="leg-item">
+          ${modeTag(l)}
+          <span>${l.detail}</span>
+          <span style="margin-left:auto; color:var(--text-dim)">${l.time}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  card.addEventListener('click', () => {
+    if (activeCard === card) {
+      card.classList.remove('active');
+      activeCard = null;
+      highlightMapRoute(null);
+    } else {
+      if (activeCard) activeCard.classList.remove('active');
+      card.classList.add('active');
+      activeCard = card;
+      highlightMapRoute(r.id);
+    }
+  });
+
+  grid.appendChild(card);
+});
+
+// =====================================================
+// PIPELINE VISUALISATION
+// =====================================================
+
+const pipeSteps = [
+  { label: 'G_base', sub: 'GTFS + OSM' },
+  { arrow: '→', filterLabel: 'C' },
+  { label: 'G″', sub: 'Binary gates applied' },
+  { arrow: '→', filterLabel: 'B' },
+  { label: 'G′', sub: 'Structural constraints' },
+  { arrow: '→', filterLabel: 'A' },
+  { label: 'T_eff', sub: 'Effective travel time' },
+];
+
+const pipeRow = document.getElementById('pipelineRow');
+pipeSteps.forEach((step, i) => {
+  if (step.arrow) {
+    const arrow = document.createElement('div');
+    arrow.className = 'pipe-arrow';
+    arrow.textContent = step.arrow;
+    arrow.style.animationDelay = `${0.1 * i}s`;
+    arrow.title = `Filter: ${step.filterLabel}-signals`;
+    pipeRow.appendChild(arrow);
+  } else {
+    const node = document.createElement('div');
+    node.className = 'pipe-node';
+    node.style.animationDelay = `${0.1 * i}s`;
+    node.innerHTML = `
+      <div class="node-label">${step.label}</div>
+      <div class="node-sub">${step.sub}</div>
+    `;
+    pipeRow.appendChild(node);
+  }
+});
+
+// Animate active step
+let activeStep = 0;
+function animatePipeline() {
+  const nodes = pipeRow.querySelectorAll('.pipe-node');
+  const arrows = pipeRow.querySelectorAll('.pipe-arrow');
+  nodes.forEach(n => n.classList.remove('active-step'));
+  arrows.forEach(a => a.classList.remove('active-arrow'));
+  if (activeStep < nodes.length) {
+    nodes[activeStep].classList.add('active-step');
+    if (activeStep > 0 && activeStep - 1 < arrows.length) {
+      arrows[activeStep - 1].classList.add('active-arrow');
+    }
+  }
+  activeStep = (activeStep + 1) % nodes.length;
+}
+setInterval(animatePipeline, 2000);
+animatePipeline();
+
+// Signal legend
+const signals = [
+  { cls: 'sig-c', type: 'C — Binary Gate', desc: 'NINA warnings, full line closures', effect: 'Removes corridors entirely from G″' },
+  { cls: 'sig-b', type: 'B — Structural', desc: 'Baustellen, elevator outage, modal availability', effect: 'Modifies graph topology in G′' },
+  { cls: 'sig-a', type: 'A — Continuous', desc: 'Weather, demand, traffic, events', effect: 'Adjusts delay distributions via Monte Carlo' },
+];
+
+const sigLegend = document.getElementById('signalLegend');
+signals.forEach(s => {
+  const card = document.createElement('div');
+  card.className = `signal-card ${s.cls}`;
+  card.innerHTML = `
+    <div class="sig-type">${s.type}</div>
+    <div class="sig-desc">${s.desc}</div>
+    <div class="sig-effect">${s.effect}</div>
+  `;
+  sigLegend.appendChild(card);
+});
+
+// =====================================================
+// CORRIDOR MAP (SVG)
+// =====================================================
+
+// Geographic coordinates → SVG projection
+// Bounding box: lat 47.5–51.8, lon 6.5–9.5
+function project(lat, lon) {
+  const x = ((lon - 6.5) / (9.5 - 6.5)) * 920 + 40;
+  const y = ((51.8 - lat) / (51.8 - 47.5)) * 502 + 30;
+  return { x, y };
+}
+
+const stations = [
+  { id: 'hasslinghausen', name: 'Haßlinghausen', lat: 51.3347, lon: 7.2781, type: 'origin', detail: 'Origin · No railway node' },
+  { id: 'schee', name: 'Schee', lat: 51.3100, lon: 7.2450, type: 'hub', detail: 'Hub · RB 49 to Hagen' },
+  { id: 'ennepetal', name: 'Ennepetal', lat: 51.2970, lon: 7.3460, type: 'hub', detail: 'Hub · S-Bahn + RE' },
+  { id: 'schwelm', name: 'Schwelm', lat: 51.2890, lon: 7.2960, type: 'hub', detail: 'Hub · S8 to Wuppertal/Hagen' },
+  { id: 'hagen', name: 'Hagen Hbf', lat: 51.3620, lon: 7.4610, type: 'hub', detail: 'Major hub · ICE + RE' },
+  { id: 'wuppertal', name: 'Wuppertal Hbf', lat: 51.2543, lon: 7.1500, type: 'hub', detail: 'Major hub · ICE stop' },
+  { id: 'koeln', name: 'Köln Hbf', lat: 50.9432, lon: 6.9586, type: 'junction', detail: 'Junction · ICE interchange' },
+  { id: 'mannheim', name: 'Mannheim Hbf', lat: 49.4795, lon: 8.4690, type: 'junction', detail: 'Junction · ICE interchange' },
+  { id: 'siegen', name: 'Siegen', lat: 50.8748, lon: 8.0243, type: 'junction', detail: 'Junction · RE network' },
+  { id: 'giessen', name: 'Gießen', lat: 50.5840, lon: 8.6784, type: 'junction', detail: 'Junction · RE interchange' },
+  { id: 'frankfurt', name: 'Frankfurt Hbf', lat: 50.1073, lon: 8.6637, type: 'junction', detail: 'Junction · ICE hub' },
+  { id: 'karlsruhe', name: 'Karlsruhe Hbf', lat: 48.9936, lon: 8.4018, type: 'junction', detail: 'Junction · ICE stop' },
+  { id: 'offenburg', name: 'Offenburg', lat: 48.4738, lon: 7.9452, type: 'junction', detail: 'Junction · Schwarzwaldbahn' },
+  { id: 'freiburg', name: 'Freiburg Hbf', lat: 47.9990, lon: 7.8421, type: 'destination', detail: 'Destination' },
+];
+
+// Route paths (station id chains)
+const routePaths = {
+  fastest: {
+    color: '#3a7bfd',
+    path: ['hasslinghausen', 'hagen', 'koeln', 'mannheim', 'karlsruhe', 'offenburg', 'freiburg'],
+  },
+  safest: {
+    color: '#2ea043',
+    path: ['hasslinghausen', 'wuppertal', 'koeln', 'mannheim', 'karlsruhe', 'offenburg', 'freiburg'],
+  },
+  creative: {
+    color: '#d29922',
+    path: ['hasslinghausen', 'schee', 'hagen', 'siegen', 'giessen', 'frankfurt', 'mannheim', 'karlsruhe', 'offenburg', 'freiburg'],
+  },
+  relaxed: {
+    color: '#8b5cf6',
+    path: ['hasslinghausen', 'hagen', 'koeln', 'mannheim', 'karlsruhe', 'offenburg', 'freiburg'],
+  },
+};
+
+const svg = document.getElementById('corridorSvg');
+const tooltip = document.getElementById('mapTooltip');
+
+// Background grid
+for (let lon = 7; lon <= 9; lon += 0.5) {
+  const p = project(51.5, lon);
+  const p2 = project(48, lon);
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', p.x); line.setAttribute('y1', p2.y);
+  line.setAttribute('x2', p.x); line.setAttribute('y2', p.y);
+  line.setAttribute('stroke', '#1a2030'); line.setAttribute('stroke-width', '0.5');
+  svg.appendChild(line);
+}
+for (let lat = 48; lat <= 51.5; lat += 0.5) {
+  const p = project(lat, 6.5);
+  const p2 = project(lat, 9.5);
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', p.x); line.setAttribute('y1', p.y);
+  line.setAttribute('x2', p2.x); line.setAttribute('y2', p.y);
+  line.setAttribute('stroke', '#1a2030'); line.setAttribute('stroke-width', '0.5');
+  svg.appendChild(line);
+}
+
+// Draw all route paths (dim by default)
+const routePathElements = {};
+Object.entries(routePaths).forEach(([id, route]) => {
+  const points = route.path.map(sid => {
+    const s = stations.find(st => st.id === sid);
+    const p = project(s.lat, s.lon);
+    return `${p.x},${p.y}`;
+  }).join(' ');
+
+  const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  polyline.setAttribute('points', points);
+  polyline.setAttribute('fill', 'none');
+  polyline.setAttribute('stroke', route.color);
+  polyline.setAttribute('stroke-width', '2');
+  polyline.setAttribute('stroke-opacity', '0.2');
+  polyline.setAttribute('stroke-linejoin', 'round');
+  polyline.setAttribute('stroke-linecap', 'round');
+  polyline.dataset.routeId = id;
+  svg.appendChild(polyline);
+  routePathElements[id] = polyline;
+});
+
+// Draw station dots
+stations.forEach(s => {
+  const p = project(s.lat, s.lon);
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+  let r = 4, fill = '#6e7681', strokeColor = 'none';
+  if (s.type === 'origin') { r = 7; fill = '#e6edf3'; strokeColor = '#3a7bfd'; }
+  else if (s.type === 'destination') { r = 7; fill = '#e6edf3'; strokeColor = '#2ea043'; }
+  else if (s.type === 'hub') { r = 5; fill = '#8b5cf6'; }
+
+  // Outer glow for origin/destination
+  if (s.type === 'origin' || s.type === 'destination') {
+    const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    glow.setAttribute('cx', p.x); glow.setAttribute('cy', p.y);
+    glow.setAttribute('r', r + 4);
+    glow.setAttribute('fill', strokeColor); glow.setAttribute('opacity', '0.15');
+    g.appendChild(glow);
+  }
+
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', p.x); circle.setAttribute('cy', p.y);
+  circle.setAttribute('r', r);
+  circle.setAttribute('fill', fill);
+  if (strokeColor !== 'none') {
+    circle.setAttribute('stroke', strokeColor);
+    circle.setAttribute('stroke-width', '2');
+  }
+  circle.style.cursor = 'pointer';
+  g.appendChild(circle);
+
+  // Label for major stations
+  if (s.type === 'origin' || s.type === 'destination' || s.type === 'hub') {
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', p.x + r + 5);
+    text.setAttribute('y', p.y + 3.5);
+    text.setAttribute('fill', '#8b949e');
+    text.setAttribute('font-family', "'DM Mono', monospace");
+    text.setAttribute('font-size', '10');
+    text.textContent = s.name;
+    g.appendChild(text);
+  }
+
+  // Tooltip interaction
+  g.addEventListener('mouseenter', (e) => {
+    tooltip.querySelector('.tt-name').textContent = s.name;
+    tooltip.querySelector('.tt-detail').textContent = s.detail;
+    tooltip.classList.add('visible');
+  });
+  g.addEventListener('mousemove', (e) => {
+    const rect = document.getElementById('mapContainer').getBoundingClientRect();
+    tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
+    tooltip.style.top = (e.clientY - rect.top - 8) + 'px';
+  });
+  g.addEventListener('mouseleave', () => {
+    tooltip.classList.remove('visible');
+  });
+
+  svg.appendChild(g);
+});
+
+// Highlight function
+function highlightMapRoute(routeId) {
+  Object.entries(routePathElements).forEach(([id, el]) => {
+    if (routeId === null) {
+      el.setAttribute('stroke-opacity', '0.2');
+      el.setAttribute('stroke-width', '2');
+    } else if (id === routeId) {
+      el.setAttribute('stroke-opacity', '0.85');
+      el.setAttribute('stroke-width', '3.5');
+    } else {
+      el.setAttribute('stroke-opacity', '0.07');
+      el.setAttribute('stroke-width', '1.5');
+    }
+  });
+}
+</script>
+</body>
+</html>

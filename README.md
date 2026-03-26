@@ -26,14 +26,16 @@ robust-route-optimiser/
 │   ├── index.md                   # Landing page
 │   ├── coastline/                 # Stable framework architecture
 │   │   └── rro-coastline-v0.6.0-rc1.md
+│   ├── demo/                      # Interactive static demo
+│   │   └── index.html
 │   ├── handbook/                  # Implementation handbooks
 │   │   ├── phase-a-engine.md      # (planned)
 │   │   ├── phase-b-state-graph.md # (planned)
 │   │   └── phase-c-logger.md     # (planned)
 │   └── notes/                     # Design log and open sketches
 │       └── design-log.md
-├── src/                           # Engine code (future)
-├── data/sample/                   # Small example data (never raw bulk)
+├── src/                           # Engine code (future; not yet created)
+├── data/sample/                   # Small example data (future; not yet created)
 ├── .github/workflows/pages.yml    # GitHub Pages deployment
 ├── README.md                      # This file
 └── LICENSE
@@ -50,6 +52,7 @@ The canonical documentation is published via GitHub Pages:
 | Document | Status | Description |
 |---|---|---|
 | [Coastline v0.6.0-rc1](docs/coastline/rro-coastline-v0.6.0-rc1.md) | **Freeze candidate** | Core architecture: objective function, signal taxonomy, graph model, boundaries B1–B7 |
+| [Static Demo](docs/demo/index.html) | **Live** | Interactive portfolio view, signal pipeline, corridor map |
 | Handbook: Phase A Engine | Planned | OTP integration, progressive deepening, portfolio clustering |
 | Handbook: Phase B State Graph | Planned | Real-time signals, G′ construction, weather overlay |
 | Handbook: Phase C Logger | Planned | GTFS-RT daemon, SQLite schema, feature engineering |

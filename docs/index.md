@@ -15,6 +15,8 @@ The RRO operates on a **state-dependent transport graph** G′ that mutates in r
 
 The framework distinguishes **forecast robustness** (prediction accuracy) from **decision robustness** (structural resilience) and keeps these architecturally separate throughout the pipeline.
 
+→ **[Interactive Static Demo](demo/)** — portfolio view, signal pipeline, corridor map
+
 ---
 
 ## Documents
