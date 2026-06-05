@@ -144,9 +144,11 @@ def test_parse_itinerary_directly():
     assert it.end > it.start
 
 
-def test_query_declares_searchwindow_as_long():
+def test_query_schema_types_match_otp_2x():
     from rro.graph.otp_client import PLAN_QUERY
-    assert "$searchWindow: Long" in PLAN_QUERY
+    assert "$searchWindow: Long" in PLAN_QUERY          # seconds, not Int
+    assert "$modes: [TransportMode]" in PLAN_QUERY      # nullable list elements
+    assert "[TransportMode!]" not in PLAN_QUERY          # not the non-null-element form
 
 
 def _plan(resp):

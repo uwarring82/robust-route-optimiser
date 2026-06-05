@@ -343,6 +343,30 @@ then `routing/hubs.py` + `decompose.py`, then wire `routing/deepening.py` to the
 
 ---
 
+## 2026-06-05 — OTP client review response + schema research
+
+Review flagged two client majors + an open question (pin `plan` vs migrate to `planConnection`).
+
+- **`searchWindow: Int → Long` (major).** Matches OTP's GTFS GraphQL schema; the `Int` form could
+  be rejected live. Already landed in `e92358e`.
+- **Parse errors → `OTPError` (major).** Leg missing `mode`, null/non-list `legs`, non-numeric
+  times, non-object itinerary/leg now normalise to `OTPError` (exit 3). Landed in `e92358e`.
+- **Open question resolved by research (workflow, 4 agents, primary sources).** Verified against the
+  OTP dev-2.x GTFS GraphQL schema files + Changelog: `plan.searchWindow` is **Long, integer
+  seconds**; the `plan` query is **deprecated since 2.7.0 but not removed** in any 2.x (functional
+  through 2.9.0); `planConnection` would add relay pagination + ISO-8601 `Duration` for no Phase A
+  benefit. **Decision: keep `plan`, pin OTP 2.9.0.** Applied: `transportModes` corrected to
+  `[TransportMode]` (was `[TransportMode!]` — a live-reject bug); `OTP_PINNED_VERSION = "2.9.0"`;
+  handbook §1.3/§3.5 pin 2.9.0 with the deprecation rationale. Deprecated epoch-ms `startTime`/
+  `endTime` kept (functional; absolute instant is correct for dominance) — migration to
+  `planConnection` + `OffsetDateTime` leg-times noted as a forward-hook behind the client seam.
+
+**Verification:** `python -m pytest` → **97 passed**; query schema-type assertions added.
+
+**Next (IO):** `data/feeds.py` + `data/ingest.py` over a trimmed corridor sample.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.

@@ -11,6 +11,17 @@ milliseconds (OTP ``Long``) and are parsed into offset-aware UTC datetimes.
 
 The HTTP transport is injectable: pass ``transport=callable(query, variables) ->
 dict`` to run against recorded responses (tests) instead of a live server.
+
+**Version pin.** Phase A targets **OTP 2.9.0**. We use the top-level GTFS GraphQL
+``plan`` query, which is *deprecated since OTP 2.7.0* in favour of
+``planConnection`` but **not removed** anywhere in the 2.x line (functional through
+2.9.0, with a harmless deprecation warning). ``plan`` is the simplest single-shot
+scheduled-itinerary query; ``planConnection`` would impose relay cursor pagination
+and an ISO-8601 ``Duration`` search window for no Phase A benefit. Migration to
+``planConnection`` — and to the non-deprecated ``OffsetDateTime`` leg-time fields,
+replacing the deprecated epoch-ms ``startTime``/``endTime`` used here — is a
+forward-hook, kept cheap by isolating the query behind this module.
+(Verified against the OTP dev-2.x GTFS GraphQL schema + Changelog.)
 """
 
 from __future__ import annotations
@@ -19,6 +30,9 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable, Optional
+
+# OTP release this client's query shape is pinned to (see module docstring).
+OTP_PINNED_VERSION = "2.9.0"
 
 
 class OTPError(RuntimeError):
@@ -36,7 +50,7 @@ DEFAULT_MODES = [
 PLAN_QUERY = """
 query Plan($from: InputCoordinates!, $to: InputCoordinates!, $date: String!,
            $time: String!, $numItineraries: Int!, $searchWindow: Long,
-           $maxTransfers: Int, $modes: [TransportMode!]) {
+           $maxTransfers: Int, $modes: [TransportMode]) {
   plan(from: $from, to: $to, date: $date, time: $time, arriveBy: false,
        numItineraries: $numItineraries, searchWindow: $searchWindow,
        maxTransfers: $maxTransfers, transportModes: $modes) {

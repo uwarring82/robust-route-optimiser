@@ -58,7 +58,7 @@ This restates the MVP table of Coastline §0.4 as the binding Phase A scope. Any
 | Prerequisite | Detail | Used by |
 |---|---|---|
 | Python 3.11+ | Engine runtime; standard library plus the `src/rro/` package | all modules |
-| A JRE (Java runtime) | Required to run **OpenTripPlanner 2.x** (Coastline §1.2); OTP is a Java application queried over its GTFS GraphQL API | `graph/build.py`, `graph/otp_client.py` |
+| A JRE (Java runtime) | Required to run **OpenTripPlanner 2.9.0** (pinned; Coastline §1.2) — a Java application queried over its GTFS GraphQL API | `graph/build.py`, `graph/otp_client.py` |
 | Corridor GTFS feeds | Static schedules for the Haßlinghausen → Freiburg corridor (DELFI/GTFS-DE, VER/VRR, DB; Coastline §1.1), fetched, validated and version-pinned | `data/feeds.py`, `data/ingest.py` |
 | OSM PBF extract | Regional street/path network for first-mile and last-mile walking/feeder edges, version-pinned alongside GTFS | `data/ingest.py`, `graph/build.py` |
 
@@ -449,9 +449,11 @@ Because Phase A is `mode = "deterministic"`, no state-dependent mutation is appl
 
 The routing layers never touch the OTP process directly. `graph/otp_client.py` wraps OTP's **GTFS GraphQL API**, exposing typed query helpers (e.g. plan an itinerary between two coordinates/stops at a departure time, enumerate stops within the first-mile window) consumed by `routing/decompose.py` (B1), `routing/hubs.py` (B2), and `routing/deepening.py` (B3). The client:
 
-- targets a locally served OTP 2.x instance loaded with the G_base graph (no third-party routing API — Coastline §5);
+- targets a locally served **OTP 2.9.0** instance loaded with the G_base graph (no third-party routing API — Coastline §5);
 - passes a fixed departure time and requests scheduled timetables only, consistent with T_eff = T_schedule (the returned itinerary times are taken as exact; no realtime updater is configured);
 - returns leg structure (`mode`, `from`, `to`, `dep`, `arr`, `line`) and transfer points that downstream scoring maps onto the canonical portfolio legs (`first_mile | backbone | last_mile`).
+
+**OTP version pin and query choice (verified).** Phase A pins **OTP 2.9.0** and uses the top-level GTFS GraphQL `plan` query. `plan` is *deprecated since OTP 2.7.0* in favour of `planConnection` but is **not removed** anywhere in the 2.x line — it stays functional through 2.9.0 (with a harmless deprecation warning). It is the simplest single-shot scheduled-itinerary query; `planConnection` would impose relay cursor pagination and an ISO-8601 `Duration` search window for no Phase A benefit. The `searchWindow` argument is typed `Long` and is an **integer number of seconds** (e.g. `7200` = 2 h, not `"PT2H"` and not minutes); `transportModes` is `[TransportMode]`; the deprecated epoch-millisecond `startTime`/`endTime` leg fields are used for now. Migration to `planConnection` and the non-deprecated `OffsetDateTime` leg-time fields is a forward-hook, kept cheap by isolating the query behind `graph/otp_client.py`. (Verified against the OTP dev-2.x GTFS GraphQL schema and Changelog.)
 
 ### 3.6  Alternative routing backend (documented, not default)
 
