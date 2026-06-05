@@ -93,7 +93,7 @@ had accumulated artifacts from a mixed local-git / GitHub-web-upload workflow.
 
 ## 2026-06-05 — Phase A engine handbook drafted
 
-**Context.** First implementation handbook. Moves [Phase A — Static Engine](phase-a-engine)
+**Context.** First implementation handbook. Moves [Phase A — Static Engine](../handbook/phase-a-engine)
 from *Planned* to *Draft*, subordinate to Coastline v0.6.0-rc1.
 
 **Method.** Authored with a multi-agent workflow under one binding design contract:
@@ -125,6 +125,39 @@ invariants hold across every example.
 
 **Follow-ups.** Phase B and Phase C handbooks remain *Planned*. The §8.7 module seams are the
 documented Phase B attachment points (G′ mutation stage in `graph/build.py`).
+
+---
+
+## 2026-06-05 — Phase A handbook: review response
+
+Two independent reviews of the Draft (committed `bf9cdec`). Confirmed clean: coastline
+subordination, `J` / `creativity` invariants, `"scheduled"` confidence, the §8.7 Phase B
+seams. Fixed the following before the handbook is used as an implementation contract:
+
+- **B4 floor (major).** §7.1 step 4 allowed a single-strategy portfolio when < 2 distinct
+  routes exist — contradicting Coastline §B4 *min 2* and CLI exit `4`. Now **underfull → error**
+  (exit `4`), never a 1-strategy result. *Min 2* stated as a hard floor.
+- **`departure_time` (major).** Was used in CLI precedence + emitted JSON but absent from the
+  config contract (which rejects unknown keys). Added to the §2.6 table (required via config
+  **or** `--depart`).
+- **Candidate identity (major).** Reconciled the dedup rule: the backbone signature's first
+  board stop **is** the feeder hub, so feeder-hub choice is part of identity; only the
+  first-mile leg (mode/path) is ignored. §4.3 and §5.3 now agree — different hubs → distinct
+  candidates, same hub + different first-mile mode → merged.
+- **Taxi `risks` (major).** `risks` is empty in Phase A **except** an experimental-taxi
+  low-confidence warning (Coastline §6); aligned §2.8, §6.5, §7.3, §8.1, §8.4 (test row).
+- **Test/fixture paths (minor).** Unified: GTFS sample = top-level `data/sample/` (§3.3);
+  test artefacts under `src/rro/tests/` (`…/golden/`, `…/data/broken/`).
+- **`J` precision + time formats (minor).** §2.8 now states one-decimal rounding for minute
+  fields (two for `creativity`) and that `legs[].dep/arr` are ISO 8601 while
+  `card.expected_arrival` is `HH:MM`.
+- **Metadata drift (minor).** README tree `(planned)` → `(draft)`; README status →
+  "Handbook drafted"; fixed the broken logbook → handbook relative link.
+- **Clarified (not a bug):** config `epsilon` is a *map*; emitted `parameters.epsilon` is the
+  `time_min` scalar by design — cross-referenced in §2.6.
+
+Re-validated: all 6 JSON examples parse and every invariant (J, creativity, degeneracy,
+transfers, expected_arrival, terminal-null) still holds.
 
 ---
 

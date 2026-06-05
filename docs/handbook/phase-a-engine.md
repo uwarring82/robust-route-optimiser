@@ -225,9 +225,10 @@ Per Coastline §1.2, the primary routing engine is **OpenTripPlanner 2.x**, quer
 |---|---|---|---|
 | `origin` | string | — (required) | Origin location (e.g. Haßlinghausen). §0 |
 | `destination` | string | — (required) | Destination (e.g. Freiburg (Breisgau) Hbf). §0 |
+| `departure_time` | string (ISO 8601) | — (required via config **or** `--depart`) | Query departure instant; the `--depart` CLI flag overrides it (§8.1). Echoed to `query.departure_time`. |
 | `t_first_minutes` | int | `45` | First-mile hub window `T_first` (B2). |
 | `depths` | int | `3` | Progressive-deepening depth count: Depth 0/1/2 (B3). |
-| `epsilon` | map | see below | B3 ε-termination thresholds: `time_min` (3) and `creativity` (0.05); calibration-adjustable (§6). |
+| `epsilon` | map | see below | B3 ε-termination thresholds: `time_min` (3) and `creativity` (0.05); calibration-adjustable (§6). Emitted in JSON `parameters.epsilon` as the `time_min` scalar (§2.8). |
 | `alpha_c` | float | `0.7` | Creativity weight `α_C` for `J(r)` (§0.2). |
 | `quantile` | float | `0.8` | Objective quantile for `Q₀.₈` (degenerate here). §0.2 |
 | `fragile_headway_min` | float | `30` | Same-line recovery-headway threshold for the structural robustness proxy (§0.1); calibration-adjustable (§6). |
@@ -346,11 +347,13 @@ Field rules in Phase A, consistent across the handbook:
 - `parameters.mode` is always `"deterministic"`.
 - `parameters.epsilon` serialises the `time_min` component of the ε map (the value the time and structural-slack criteria use); the paired `creativity` threshold (0.05) lives in `routing/deepening.py` and is set via `epsilon.creativity` in config.
 - Because the distribution is degenerate, `score.Q08_T_eff_min == score.E_T_eff_min == T_schedule` for every strategy (Coastline §0.4, §3.2).
-- `score.J == Q08_T_eff_min − α_C · creativity` exactly (Coastline §0.2): with `creativity ∈ [0,1]` and `α_C = 0.7`, J sits within 0.7 min of `Q08_T_eff_min`. In the example above `creativity = 0`, so `J = Q08_T_eff_min = 271.0`.
+- `score.J == Q08_T_eff_min − α_C · creativity` (Coastline §0.2), up to the one-decimal rounding noted below: with `creativity ∈ [0,1]` and `α_C = 0.7`, J sits within 0.7 min of `Q08_T_eff_min`. In the example above `creativity = 0`, so `J = Q08_T_eff_min = 271.0`.
 - `card.confidence` is the literal string `"scheduled"` — not a `±X` band, since `Q₀.₈ − E[T_eff] = 0` (Coastline §7).
 - The `robust` cluster is ordered by the structural decision-robustness proxy (transfers → `min_transfer_slack_min` → `fragile_legs`), an explicit Phase-A stand-in for `Q₀.₉₅(T_eff)` (Coastline §0.1, §0.4).
-- `card.comfort` and `card.risks` are optional and empty in Phase A (Coastline §0.5 optional; no B/C signals active).
+- `card.comfort` is optional and empty in Phase A; `card.risks` is empty **except** a low-confidence warning string when an experimental taxi first-mile leg is selected (Coastline §6, §4.2). No B/C signals are active.
 - `card.price_eur` may be `null` where fare data is unavailable in the static slice.
+- **Numeric precision.** Minute-valued fields (`J`, `Q08_T_eff_min`, `E_T_eff_min`, `*_slack_min`) are emitted rounded to **one decimal**; `creativity` to **two decimals**. The invariants above hold up to that rounding (e.g. `309.0 − 0.7·0.58 = 308.594 → 308.6`).
+- **Time formats.** `legs[].dep` / `legs[].arr` are **ISO 8601** datetimes with offset in emitted JSON (as shown in §8.1); worked examples elsewhere abbreviate them to `HH:MM` for readability. `card.expected_arrival` is always local **`HH:MM`**, equal to the last leg's arrival.
 
 See [Coastline v0.6.0-rc1](../coastline/rro-coastline-v0.6.0-rc1) for the governing boundaries (B1–B4), the objective function (§0.2), and the user-facing card specification (§7).
 
@@ -521,7 +524,7 @@ b ≻ a  ⇔  b.arrival_time ≤ a.arrival_time
 
 The filter returns the **non-dominated (Pareto-optimal) frontier** of hub-arrivals over the three criteria `(arrival_time, cost_eur, transfers)`. The comparison is **per-hub-arrival, not per-hub**: two arrivals at the *same* hub on different feeders/modes are compared like any other pair, and an arrival at one hub can dominate an arrival at a different hub.
 
-**Mode is not a dominance dimension.** `first_mile_mode` is carried on every hub-arrival but is **not** one of the dominance criteria — dominance is over `(arrival_time, cost_eur, transfers)` only. Two arrivals equal on all three criteria but differing in mode (e.g. a taxi arrival and a bus arrival at the same hub at the same time and cost) are **mutually non-dominating** (the strictness clause fails both ways) and are **both retained** into B3. B3 deduplicates downstream on the *backbone* route signature (§5.4), which ignores the feeder hub and mode — so a taxi/bus pair that feeds the *same* backbone would collapse to one backbone candidate, and the surviving entry retains its feeder hub and mode for B4. To avoid emitting a confusing duplicate that differs only in first-mile mode, when two retained arrivals feed the identical backbone the controller keeps the lower-`first_mile_mode`-risk feeder (walk/bus preferred over experimental taxi) unless the taxi feeder is strictly faster; the taxi variant is surfaced only when it yields a distinct, strictly better backbone candidate.
+**Mode is not a dominance dimension.** `first_mile_mode` is carried on every hub-arrival but is **not** one of the dominance criteria — dominance is over `(arrival_time, cost_eur, transfers)` only. Two arrivals equal on all three criteria but differing in mode (e.g. a taxi arrival and a bus arrival at the same hub at the same time and cost) are **mutually non-dominating** (the strictness clause fails both ways) and are **both retained** into B3. B3 deduplicates downstream on the *backbone* route signature (§5.4), which ignores the **first-mile leg** (its mode and path) but **not** the feeder hub — the hub is the backbone board stop and is part of the signature. So a taxi/bus pair reaching the *same hub* on the *same backbone* collapses to one candidate, and the surviving entry retains its feeder hub and preferred mode for B4; arrivals at *different* hubs stay distinct. To avoid emitting a confusing duplicate that differs only in first-mile mode, when two retained arrivals feed the identical backbone the controller keeps the lower-`first_mile_mode`-risk feeder (walk/bus preferred over experimental taxi) unless the taxi feeder is strictly faster; the taxi variant is surfaced only when it yields a distinct, strictly better backbone candidate.
 
 ```python
 def is_dominated(a: HubArrival, frontier: Iterable[HubArrival]) -> bool:
@@ -543,7 +546,7 @@ def is_dominated(a: HubArrival, frontier: Iterable[HubArrival]) -> bool:
 
 ### 4.4  Output Contribution
 
-B1/B2 do not emit the portfolio JSON themselves (that is `portfolio/output.py`), but they populate the `first_mile` legs of each strategy and the `t_first_minutes` parameter. The relevant slice of the [canonical portfolio schema](../coastline/rro-coastline-v0.6.0-rc1):
+B1/B2 do not emit the portfolio JSON themselves (that is `portfolio/output.py`), but they populate the `first_mile` legs of each strategy and the `t_first_minutes` parameter. The relevant slice of the [canonical portfolio schema](../coastline/rro-coastline-v0.6.0-rc1) (abridged — one strategy, `parameters`/`legs`/`card` only):
 
 ```json
 {
@@ -618,13 +621,15 @@ The query carries **no `GTFS-RT` source and no realtime updater**: the OTP graph
 
 ### 5.3  Deduplication and candidate-pool accumulation
 
-OTP returns overlapping itineraries across hubs and depths (the same backbone train reached via different feeders, or re-returned at Depth 1/2 inside a wider budget). The controller accumulates into a single candidate pool keyed by a **structural route signature** so that one canonical entry survives per distinct backbone:
+OTP returns overlapping itineraries across hubs and depths (the same backbone train re-returned at Depth 1/2 inside a wider budget, or reached via different first-mile modes). The controller accumulates into a single candidate pool keyed by a **structural route signature** so that one canonical entry survives per distinct backbone *route* — where the feeder hub (the stop at which the backbone is boarded) is part of that identity:
 
 ```python
 def route_signature(itinerary) -> tuple:
     # Structural identity of the BACKBONE layer only:
-    # ordered sequence of (line, board_stop, alight_stop) for transit legs,
-    # ignoring the feeder hub and exact minute-level departure.
+    # ordered sequence of (line, board_stop, alight_stop) for transit legs.
+    # The first backbone board_stop IS the feeder hub, so feeder-hub choice is
+    # part of the signature; only the first-mile leg (mode + path to the hub)
+    # and the exact minute-level departure are ignored.
     return tuple(
         (leg.line, leg.from_stop, leg.to_stop)
         for leg in itinerary.transit_legs
@@ -635,7 +640,7 @@ Pool accumulation rules (`routing/deepening.py`):
 
 - A new itinerary whose `route_signature` is unseen is **added**.
 - A duplicate signature is **merged**: the controller keeps the variant with the earlier arrival (lower `T_schedule`) and records the alternative departure time as an additional service on that backbone, so connection-slack computation in `scoring/robustness.py` sees the full headway picture.
-- The hub of origin is retained on every candidate (the B1 first-mile join), so two feeders reaching an identical backbone remain distinguishable for B4 even though their backbone signature is shared.
+- Routes reaching the **same backbone train at the same feeder hub** but differing only in the first-mile leg (walk vs bus vs taxi to that hub) share a signature and are **merged**, the survivor keeping its feeder hub and preferred first-mile mode (§4.3). Routes boarding at **different feeder hubs** have different board stops, hence different signatures, and stay **distinct candidates** for B4 — preserving feeder-hub choice as the Phase A lever (Coastline §0).
 
 The pool is **monotone-accumulating across depths**: Depth 1 and Depth 2 add to the Depth 0 pool, they never reset it. This is what lets ε-termination compare the *enriched* pool against the *pre-depth* pool.
 
@@ -677,7 +682,7 @@ C(r) is computed two-pass (Coastline §0.3). The **calibration pass** runs once 
 
 ### 5.6  Candidate-pool contribution to the portfolio
 
-Each surviving candidate carries the fields B4 and the cards consume. The deepening controller is responsible for the structural fields (`transfers`, `legs`, `backbone_km`); scoring fills the rest. The portfolio JSON (canonical schema) reflects pool members under `strategies[].score`/`legs`, e.g.:
+Each surviving candidate carries the fields B4 and the cards consume. The deepening controller is responsible for the structural fields (`transfers`, `legs`, `backbone_km`); scoring fills the rest. The portfolio JSON (canonical schema) reflects pool members under `strategies[].score`/`legs` (abridged to one strategy), e.g.:
 
 ```json
 {
@@ -869,7 +874,7 @@ This proxy is labelled, everywhere it is surfaced, as a **Phase-A stand-in** for
 
 ### 6.5  Output mapping
 
-`scoring/*` populates the `strategies[].score` block; `portfolio/output.py` and `portfolio/card.py` consume it. The deterministic mode produces the following invariants in the canonical schema:
+`scoring/*` populates the `strategies[].score` block; `portfolio/output.py` and `portfolio/card.py` consume it. The deterministic mode produces the following invariants in the canonical schema (abridged — one strategy, `score` and `card` only):
 
 ```json
 {
@@ -895,7 +900,7 @@ This proxy is labelled, everywhere it is surfaced, as a **Phase-A stand-in** for
 }
 ```
 
-Note `Q08_T_eff_min == E_T_eff_min` (degeneracy), and `J == Q08_T_eff_min − α_C·creativity = 318.0 − 0.7·0.08 = 317.94 ≈ 317.9` (Coastline §0.2). `card.confidence` is the **string `"scheduled"`**, not a `±X min` interval: the user-facing confidence interval is derived as Q₀.₈ − E[T_eff] (Coastline §7), which equals **0** here, so no honest interval exists. `card.comfort` and `card.risks` are optional/empty in Phase A (Coastline §0.5, §7). The „Sicherste" cluster above is ranked by the structural proxy, not Q₀.₉₅ — the Phase-A stand-in.
+Note `Q08_T_eff_min == E_T_eff_min` (degeneracy), and `J == Q08_T_eff_min − α_C·creativity = 318.0 − 0.7·0.08 = 317.94 ≈ 317.9` (Coastline §0.2). `card.confidence` is the **string `"scheduled"`**, not a `±X min` interval: the user-facing confidence interval is derived as Q₀.₈ − E[T_eff] (Coastline §7), which equals **0** here, so no honest interval exists. `card.comfort` is optional/empty in Phase A and `card.risks` is empty unless an experimental-taxi low-confidence warning applies (Coastline §6, §4.2). The „Sicherste" cluster above is ranked by the structural proxy, not Q₀.₉₅ — the Phase-A stand-in.
 
 > Cross-reference: [Coastline v0.6.0-rc1](../coastline/rro-coastline-v0.6.0-rc1) §0.1 (dual robustness), §0.2 (J(r), reporting-only), §0.3 (C(r), R, R-blending), §0.4 (MVP slice), §B4 (clusters), §6 (parameter sensitivity), §7 (confidence interval).
 
@@ -937,7 +942,7 @@ In deterministic mode several clusters frequently select the **same physical rou
 1. Score every surviving route against all four cluster keys.
 2. For each route, determine the cluster in which it ranks **strongest and distinctly** — i.e. the cluster where it is the unique top route. A route is assigned to **exactly one** cluster: its strongest distinct claim.
 3. If two clusters would map to the same route, assign that route to the cluster where its margin over the runner-up is largest; the other cluster then takes its **next-best** route, provided that route is not already assigned.
-4. Drop a cluster entirely when no unassigned route can represent it. This **reduces the number of strategies** (e.g. to 3, or to the floor of 2) but **never below 2** (Coastline §B4). If fewer than 2 distinct routes exist in total, the portfolio degrades to a single-strategy result with an explicit note; this is the lower-bound guard, not normal operation.
+4. Drop a cluster entirely when no unassigned route can represent it. This **reduces the number of strategies** (e.g. to 3, or to the floor of 2) but **never below 2** (Coastline §B4). If fewer than 2 distinct routes exist in total, the portfolio is **underfull**: no valid portfolio can be emitted, so the run fails with a diagnostic (CLI exit `4`, §8.1) rather than returning a single-strategy result. Coastline §B4's *min 2* is a hard floor, not a target.
 
 Cluster precedence when resolving a tie for the same route is fixed and deterministic: `fastest` → `robust` → `low_transfer` → `creative`. The `creative` strategy is the one most often *kept distinct*, because max C(r) (Coastline §0.3) typically selects an off-backbone route that no time/transfer key would surface.
 
@@ -1148,7 +1153,7 @@ The `robust` strategy's `score.Q08_T_eff_min` is emitted for schema completeness
 | `transfer_stations` | Station names at each transfer, from `legs[]` | transfer station names |
 | `price_eur` | Fare estimate (BahnCard-aware via `bahncard` config) | "Price ← Cost(r)" |
 | `comfort` | **Optional, empty `[]`** in Phase A (§0.5 reporting-only, optional) | "Comfort" (§0.5) |
-| `risks` | **Empty `[]`** in Phase A | "Risks ← S_node, B-signals" |
+| `risks` | **Empty `[]`** in Phase A, except an experimental-taxi low-confidence warning (Coastline §6, §4.2) | "Risks ← S_node, B-signals" |
 
 #### `confidence` is the string `"scheduled"`, not a fake interval
 
@@ -1267,7 +1272,7 @@ Exit codes: `0` = portfolio emitted (min 2 strategies, Coastline §B4); `2` = GT
 
 The objective is the coastline form throughout (Coastline §0.2): `J(r) = Q₀.₈(T_eff) − α_C·C(r) = T_schedule − α_C·C(r)`, with `C(r)` dimensionless in `[0,1]` and `α_C` in minutes-per-creativity-unit. So the creativity term `α_C·C(r)` is at most 0.7 min and J sits within 0.7 min of `Q08_T_eff_min`: for the fastest strategy `J = 268.0 − 0.7·0.04 ≈ 268.0`, and for the creative strategy `J = 289.0 − 0.7·0.53 ≈ 288.6`. The bonus never scales with the schedule time.
 
-**Rendered card table** (`portfolio/card.py`, Coastline §7; only the active fields are populated in Phase A — `comfort` and `risks` are empty, `confidence` is `scheduled`):
+**Rendered card table** (`portfolio/card.py`, Coastline §7; only the active fields are populated in Phase A — `comfort` is empty, `risks` is empty unless an experimental-taxi warning applies (§4.2), `confidence` is `scheduled`):
 
 | Strategy | Expected arrival | Confidence | Transfers | Transfer stations | Price |
 |---|---|---|---|---|---|
@@ -1376,11 +1381,11 @@ Testing has three tiers, all under `src/rro/tests/`.
 | `scoring/robustness.py` | lexicographic key (transfers, then min transfer slack, then fragile-leg count); fragile-leg flag when same-line recovery headway exceeds `fragile_headway_min` (default 30) |
 | `portfolio/cluster.py` | min 2 / max 4 clusters; degenerate-time collapse routes Sicherste to the structural proxy, not to `Q₀.₈` |
 | `portfolio/output.py` | emitted JSON matches the canonical schema field-for-field; `mode == "deterministic"`; `confidence == "scheduled"`; `J == Q08_T_eff_min − 0.7·creativity` |
-| `portfolio/card.py` | §7 mapping; `comfort`/`risks` empty; `expected_arrival` is `E[T_eff]` as `HH:MM` = last-leg arr |
+| `portfolio/card.py` | §7 mapping; `comfort` empty, `risks` empty unless an experimental-taxi warning applies (§4.2); `expected_arrival` is `E[T_eff]` as `HH:MM` = last-leg arr |
 
-**Golden-route integration fixtures.** A frozen GTFS sample lives in `src/rro/data/sample/` — a hand-trimmed multi-feed extract covering the Haßlinghausen feeder hubs and the backbone to Freiburg (Breisgau) Hbf, plus a small OSM PBF clip for first/last-mile walking and bus access. Because the sample is frozen and the engine is deterministic (`T_eff = T_schedule`), the full B1→B4 pipeline must reproduce a byte-stable expected portfolio (`tests/golden/expected_portfolio.json`) for a fixed `corridor.yml` and a fixed `--depart`. The comparison ignores only `query.generated_at`. This is the primary regression guard: any change to dominance, deepening order, ε-termination, the structural proxy, or the card mapping that alters route selection will diff against the golden file. A second golden case fixes `alpha_c=0.0` to lock the calibration-pass reference-set selection (`reference_corridors`).
+**Golden-route integration fixtures.** The frozen GTFS sample is the shared `data/sample/` fixture (§3.3) — a hand-trimmed multi-feed extract covering the Haßlinghausen feeder hubs and the backbone to Freiburg (Breisgau) Hbf, plus a small OSM PBF clip for first/last-mile walking and bus access. Because the sample is frozen and the engine is deterministic (`T_eff = T_schedule`), the full B1→B4 pipeline must reproduce a byte-stable expected portfolio (`src/rro/tests/golden/expected_portfolio.json`) for a fixed `corridor.yml` and a fixed `--depart`. The comparison ignores only `query.generated_at`. This is the primary regression guard: any change to dominance, deepening order, ε-termination, the structural proxy, or the card mapping that alters route selection will diff against the golden file. A second golden case fixes `alpha_c=0.0` to lock the calibration-pass reference-set selection (`reference_corridors`).
 
-**GTFS validation tests.** `data/ingest.py` runs structural validation on every feed at ingest and the test suite asserts it: required files (`stops.txt`, `routes.txt`, `trips.txt`, `stop_times.txt`, `calendar*.txt`), referential integrity (every `stop_id`/`trip_id`/`route_id` referenced is defined), monotone `stop_times` sequences, and service-calendar coverage of the planned departure date. Validation failure must raise before graph build and map to CLI exit 2. A negative fixture (a deliberately corrupted feed in `tests/data/broken/`) asserts the failure path.
+**GTFS validation tests.** `data/ingest.py` runs structural validation on every feed at ingest and the test suite asserts it: required files (`stops.txt`, `routes.txt`, `trips.txt`, `stop_times.txt`, `calendar*.txt`), referential integrity (every `stop_id`/`trip_id`/`route_id` referenced is defined), monotone `stop_times` sequences, and service-calendar coverage of the planned departure date. Validation failure must raise before graph build and map to CLI exit 2. A negative fixture (a deliberately corrupted feed in `src/rro/tests/data/broken/`) asserts the failure path.
 
 ### 8.5  Falsification instrumentation (forward-hook only)
 

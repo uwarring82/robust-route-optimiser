@@ -34,7 +34,7 @@ robust-route-optimiser/
 │   ├── demo/                      # Interactive static demo
 │   │   └── index.html
 │   ├── handbook/                  # Implementation handbooks
-│   │   ├── phase-a-engine.md      # (planned)
+│   │   ├── phase-a-engine.md      # (draft)
 │   │   ├── phase-b-state-graph.md # (planned)
 │   │   └── phase-c-logger.md      # (planned)
 │   └── notes/
@@ -83,7 +83,7 @@ RRO is part of the [Open-Science Harbour](https://uwarring82.github.io/me). It f
 | Phase | Status |
 |---|---|
 | Coastline architecture | ✅ v0.6.0-rc1 freeze candidate |
-| Phase A — Static prototype | 🔲 Not started |
+| Phase A — Static prototype | 📝 Handbook drafted; implementation not started |
 | Phase B — Real-time + G′ | 🔲 Not started |
 | Phase C — Historical conditioning | 🔲 Not started |
 
