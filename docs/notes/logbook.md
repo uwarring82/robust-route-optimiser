@@ -321,6 +321,28 @@ byte-identical (collapse only affects duplicate signatures).
 
 ---
 
+## 2026-06-05 — IO track item 1: OTP GraphQL `plan` client
+
+First IO module. Implemented `graph/otp_client.py` against recorded responses — no live OTP needed.
+
+- **Collapse total-order patch first.** `_collapse_key` now tie-breaks over every emitted field
+  (full legs incl. slack, whole score, price, warning, `None` ordered last), so same-backbone
+  candidates differing only in price are order-independent.
+- **OTP client.** `PLAN_QUERY` (GTFS GraphQL, scheduled search per §5.2), a response parser
+  (`parse_itinerary`/`parse_leg` → `OTPItinerary`/`OTPLeg`, epoch-ms → offset-aware UTC), and a thin
+  `OTPClient` with an **injectable transport** (default urllib POST). Error paths normalised to
+  `OTPError` (→ CLI exit 3): GraphQL `errors`, null `plan`, non-dict response, transport exceptions.
+  `isochrone` (hub discovery, §4.2) left as a stub — different OTP API.
+
+**Verification:** `python -m pytest` → **92 passed** (+11 over 81: +2 collapse price tie-break,
++9 OTP client — parsing, time conversion, variable construction, empty/`errors`/null-plan/non-dict/
+transport-exception paths).
+
+**Next (IO):** `data/feeds.py` + `data/ingest.py` (registry + fetch over a trimmed corridor sample),
+then `routing/hubs.py` + `decompose.py`, then wire `routing/deepening.py` to the client + dedup pool.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.
