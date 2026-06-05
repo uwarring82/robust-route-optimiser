@@ -48,10 +48,11 @@ DEFAULT_MODES = [
 # GTFS GraphQL plan query (handbook §5.2). Scheduled search: arriveBy=false, no
 # realtime updater. startTime/endTime are epoch milliseconds.
 PLAN_QUERY = """
-query Plan($from: InputCoordinates!, $to: InputCoordinates!, $date: String!,
-           $time: String!, $numItineraries: Int!, $searchWindow: Long,
-           $maxTransfers: Int, $modes: [TransportMode]) {
-  plan(from: $from, to: $to, date: $date, time: $time, arriveBy: false,
+query Plan($from: InputCoordinates, $to: InputCoordinates, $fromPlace: String,
+           $toPlace: String, $date: String!, $time: String!, $numItineraries: Int!,
+           $searchWindow: Long, $maxTransfers: Int, $modes: [TransportMode]) {
+  plan(from: $from, to: $to, fromPlace: $fromPlace, toPlace: $toPlace,
+       date: $date, time: $time, arriveBy: false,
        numItineraries: $numItineraries, searchWindow: $searchWindow,
        maxTransfers: $maxTransfers, transportModes: $modes) {
     itineraries {
@@ -158,6 +159,20 @@ def _coords(place) -> dict:
     return {"lat": lat, "lon": lon}
 
 
+def _set_place(variables: dict, coord_key: str, place_key: str, value) -> None:
+    """Route a place into either ``from``/``to`` (coordinates) or ``fromPlace``/
+    ``toPlace`` (a string: an OTP stop id ``FeedId:StopId`` or ``"lat,lon"``).
+
+    OTP requires exactly one of the pair, so the other is set to ``None``.
+    """
+    if isinstance(value, str):
+        variables[coord_key] = None
+        variables[place_key] = value
+    else:
+        variables[coord_key] = _coords(value)
+        variables[place_key] = None
+
+
 def _split_iso(depart) -> tuple:
     dt = depart if isinstance(depart, datetime) else datetime.fromisoformat(depart)
     return dt.strftime("%Y-%m-%d"), dt.strftime("%H:%M:%S")
@@ -224,14 +239,15 @@ class OTPClient:
              modes: Optional[list] = None) -> list:
         """Plan itineraries for one origin→destination pair at ``depart`` (§5.2).
 
-        ``origin``/``destination`` are ``(lat, lon)`` tuples or ``{"lat","lon"}``
-        dicts; ``depart`` is an ISO 8601 string or :class:`datetime`. Returns a
-        list of :class:`OTPItinerary`. Raises :class:`OTPError` on any failure.
+        ``origin``/``destination`` are either coordinates — a ``(lat, lon)`` tuple
+        or ``{"lat","lon"}`` dict (sent as ``from``/``to``) — or a place **string**:
+        an OTP stop id ``"FeedId:StopId"`` or ``"lat,lon"`` (sent as
+        ``fromPlace``/``toPlace``). ``depart`` is an ISO 8601 string or
+        :class:`datetime`. Returns a list of :class:`OTPItinerary`. Raises
+        :class:`OTPError` on any failure.
         """
         date, time = _split_iso(depart)
         variables = {
-            "from": _coords(origin),
-            "to": _coords(destination),
             "date": date,
             "time": time,
             "numItineraries": num_itineraries,
@@ -239,6 +255,8 @@ class OTPClient:
             "maxTransfers": max_transfers,
             "modes": modes if modes is not None else DEFAULT_MODES,
         }
+        _set_place(variables, "from", "fromPlace", origin)
+        _set_place(variables, "to", "toPlace", destination)
         data = self._execute(PLAN_QUERY, variables)
         plan = data.get("plan")
         if plan is None:

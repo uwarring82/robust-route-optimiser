@@ -544,6 +544,26 @@ served OTP instance over the `data/sample/` fixture.
 
 ---
 
+## 2026-06-05 — Pipeline review response (deterministic collapse + OTP place contract)
+
+- **Same-backbone collapse order-dependent again (major).** `deepen` collapses same-signature
+  duplicates *before* B4, so B4's total-order `_collapse_key` was bypassed and a bus-first vs
+  taxi-first ordering changed the emitted card risk. `CandidatePool.add` now breaks an **equal-arrival**
+  tie deterministically via `_collapse_pref` (non-taxi over taxi, then stable leg key) — taxi survives
+  only when strictly faster (§4.3), independent of input order; ε-termination still triggers only on a
+  strictly-earlier arrival.
+- **OTP place contract (major).** The pipeline passed hub/destination **strings** to `OTPClient.plan`,
+  which only accepted coordinates. Extended `plan` to route strings to `fromPlace`/`toPlace` (OTP stop
+  id `FeedId:StopId` or `"lat,lon"`) and coordinates to `from`/`to` (now nullable, per the OTP schema);
+  handbook §5.2 query synced. Documented in `otp_plan_fns` that live use needs `HubArrival.hub_id` /
+  `config.destination` to be resolvable stop ids (a live-OTP precondition).
+
+**Verification:** `python -m pytest` → **160 passed** (+4): pool non-taxi-on-equal-arrival (both
+orders) + taxi-when-strictly-faster; end-to-end bus-first/taxi-first → identical card; OTP place
+identifiers via fromPlace/toPlace. Both goldens byte-identical.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.

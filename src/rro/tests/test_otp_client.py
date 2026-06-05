@@ -97,12 +97,25 @@ def test_plan_builds_query_variables():
     v = cap["variables"]
     assert v["from"] == {"lat": 51.32, "lon": 7.27}
     assert v["to"] == {"lat": 47.99, "lon": 7.84}
+    assert v["fromPlace"] is None and v["toPlace"] is None   # coords path
     assert v["date"] == "2026-06-08" and v["time"] == "07:30:00"
     assert v["numItineraries"] == 6
     assert v["maxTransfers"] == 2
     assert v["searchWindow"] == 5400
     assert v["modes"] == DEFAULT_MODES
     assert "plan(" in cap["query"]
+
+
+def test_plan_accepts_place_identifiers():
+    # Stop ids (or "lat,lon" strings) go via fromPlace/toPlace, not from/to.
+    cap = {}
+    _client(_RECORDED, capture=cap).plan(
+        "1:hbf-wuppertal", "1:hbf-freiburg", "2026-06-08T07:30:00+02:00",
+        num_itineraries=6, max_transfers=1, search_window_s=3600,
+    )
+    v = cap["variables"]
+    assert v["fromPlace"] == "1:hbf-wuppertal" and v["from"] is None
+    assert v["toPlace"] == "1:hbf-freiburg" and v["to"] is None
 
 
 def test_empty_itineraries_returns_empty_list():

@@ -78,6 +78,33 @@ def test_pool_dedup_keeps_earlier_arrival_and_records_alt():
     assert kept.alt_departures == [late.departure]
 
 
+def _route_mode(first_mode, dep_min, arr_min):
+    """Same hub + backbone, varying the first-mile mode (bus vs taxi)."""
+    feeder = OTPLeg(first_mode.upper(), "Haßlinghausen", "Wuppertal Hbf", _m(dep_min), _m(dep_min + 30))
+    rail = OTPLeg("RAIL", "Wuppertal Hbf", "Freiburg (Breisgau) Hbf", _m(dep_min + 41), _m(arr_min),
+                  route_short_name="ICE 1")
+    return OTPItinerary(start=feeder.start, end=rail.end, legs=[feeder, rail])
+
+
+def test_pool_same_arrival_collapse_prefers_non_taxi_deterministically():
+    # Same backbone signature + same arrival, bus vs taxi feeder: the non-taxi
+    # variant must survive regardless of add order (no order-dependent card risk).
+    for order in (["bus", "taxi"], ["taxi", "bus"]):
+        pool = CandidatePool()
+        for mode in order:
+            pool.add(Candidate.from_itinerary(_route_mode(mode, 0, 280)))
+        [kept] = pool.routes()
+        assert kept.legs[0].mode == "bus"
+
+
+def test_pool_taxi_kept_only_when_strictly_faster():
+    pool = CandidatePool()
+    pool.add(Candidate.from_itinerary(_route_mode("bus", 0, 280)))
+    pool.add(Candidate.from_itinerary(_route_mode("taxi", 0, 275)))  # strictly earlier arrival
+    [kept] = pool.routes()
+    assert kept.legs[0].mode == "taxi"
+
+
 def test_pool_merge_replaces_when_earlier_added_second():
     pool = CandidatePool()
     late = Candidate.from_itinerary(_route("Wuppertal Hbf", "ICE 1", 60, 360))

@@ -87,6 +87,19 @@ class Candidate:
         return min_transfer_slack(self.legs)
 
 
+def _collapse_pref(candidate: "Candidate") -> tuple:
+    """Deterministic preference among **same-arrival** same-signature variants.
+
+    Smaller wins: non-taxi first-mile over taxi (so a taxi feeder survives only
+    when strictly faster, handbook §4.3), then a stable leg key. Independent of
+    input order, and consistent with B4's collapse rule (``portfolio.cluster``).
+    """
+    legs = candidate.legs
+    taxi = 1 if any(l.layer == "first_mile" and (l.mode or "").lower() == "taxi" for l in legs) else 0
+    leg_key = tuple((l.layer, l.mode, l.from_, l.to, l.dep, l.arr, l.line or "") for l in legs)
+    return (taxi, leg_key)
+
+
 class CandidatePool:
     """Dedup pool keyed by backbone signature; monotone-accumulating (handbook §5.3)."""
 
@@ -95,16 +108,18 @@ class CandidatePool:
 
     def add(self, candidate: Candidate) -> bool:
         """Add a candidate. Returns ``True`` if it was **added** (new signature) or
-        **improved** an existing one (earlier arrival replaces); ``False`` for a
-        no-improvement merge.
+        **improved** an existing one (strictly earlier arrival replaces); ``False``
+        for a no-improvement merge.
 
         The True cases are exactly what ε-termination must see (§5.4) — a deeper
         sweep that makes an existing route 50 min faster *is* a portfolio
         improvement, even though the backbone signature is unchanged.
 
-        A duplicate signature is merged: the earlier-arriving variant is kept and
-        the other's departure recorded as an additional service, so the full
-        headway picture survives for connection-slack reasoning.
+        The signature ignores first-mile mode (§5.3), so a same-hub bus and taxi
+        collapse here. The survivor is chosen deterministically (earlier arrival,
+        else :func:`_collapse_pref` — non-taxi over taxi), so the kept variant
+        never depends on input order. The other's departure is recorded as an
+        additional service, preserving the headway picture.
         """
         cur = self._by_sig.get(candidate.signature)
         if cur is None:
@@ -113,8 +128,14 @@ class CandidatePool:
         if candidate.arrival < cur.arrival:
             candidate.alt_departures = [*cur.alt_departures, cur.departure]
             self._by_sig[candidate.signature] = candidate
-            return True  # improved: earlier arrival for an existing signature
-        cur.alt_departures.append(candidate.departure)
+            return True  # improved: strictly earlier arrival
+        # Equal/later arrival is not an ε-improvement; pick the survivor by a
+        # deterministic preference so order does not change the emitted card.
+        if candidate.arrival == cur.arrival and _collapse_pref(candidate) < _collapse_pref(cur):
+            candidate.alt_departures = [*cur.alt_departures, cur.departure]
+            self._by_sig[candidate.signature] = candidate
+        else:
+            cur.alt_departures.append(candidate.departure)
         return False
 
     def routes(self) -> list:

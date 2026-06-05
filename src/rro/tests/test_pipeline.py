@@ -108,3 +108,30 @@ def test_pipeline_scoring_invariants():
 def test_pipeline_golden_matches():
     expected = json.loads(_GOLDEN.read_text(encoding="utf-8"))
     assert portfolio_to_dict(_portfolio()) == expected
+
+
+def test_collapse_is_order_independent_for_first_mile_mode():
+    # Same hub + backbone via bus and taxi (same arrival) collapse in deepening
+    # before B4 — the survivor (and its card risk) must not depend on input order.
+    bus_w = _itin([_leg("BUS", "Haßlinghausen", "Wuppertal Hbf", 10, 45)])
+    taxi_w = _itin([_leg("TAXI", "Haßlinghausen", "Wuppertal Hbf", 12, 45)])   # same arrival
+    bus_h = _itin([_leg("BUS", "Haßlinghausen", "Schwelm", 5, 25),
+                   _leg("BUS", "Schwelm", "Hagen Hbf", 28, 40)])
+    backbones = {
+        "Wuppertal Hbf": [_itin([_leg("RAIL", "Wuppertal Hbf", _FR, 56, 295, "ICE 1", 500)])],
+        "Hagen Hbf": [_itin([_leg("RAIL", "Hagen Hbf", _FR, 51, 300, "ICE 2", 480)])],
+    }
+
+    def backbone(ha, dest, params):
+        return backbones.get(ha.hub_id, [])
+
+    cfg = _config()
+    for order in ([bus_w, taxi_w, bus_h], [taxi_w, bus_w, bus_h]):
+        def hub_fn(o, d, t, _o=order):
+            return _o
+        p = plan_portfolio(cfg, "2026-06-08T07:00:00+02:00",
+                           hub_plan_fn=hub_fn, backbone_plan_fn=backbone,
+                           generated_at="2026-06-05T00:00:00+02:00")
+        wuppertal = next(s for s in p.strategies if feeder_hub(s.legs) == "Wuppertal Hbf")
+        assert wuppertal.legs[0].mode == "bus"   # non-taxi survives, both orders
+        assert wuppertal.card.risks == []

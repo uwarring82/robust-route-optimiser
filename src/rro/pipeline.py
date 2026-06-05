@@ -102,9 +102,13 @@ def plan_portfolio(config, departure, *, hub_plan_fn, backbone_plan_fn,
 def otp_plan_fns(client, *, base_budget=None):
     """Build OTP-backed (hub, backbone) plan functions from a live client.
 
-    The backbone function calls the GTFS GraphQL ``plan`` query; hub discovery
-    needs OTP's isochrone / one-to-many API (``client.isochrone``), which is not
-    yet implemented — the returned ``hub_plan_fn`` surfaces that clearly.
+    The backbone function calls the GTFS GraphQL ``plan`` query, passing the hub
+    and destination as place strings (``OTPClient.plan`` accepts a stop id
+    ``FeedId:StopId`` or ``"lat,lon"``). For live use, hub discovery must therefore
+    populate ``HubArrival.hub_id`` with a resolvable stop id (not a display name),
+    and ``config.destination`` likewise — a Phase-B/live-OTP precondition. Hub
+    discovery itself needs OTP's isochrone / one-to-many API (``client.isochrone``),
+    which is not yet implemented — the returned ``hub_plan_fn`` surfaces that clearly.
     """
     def hub_plan_fn(origin, departure, t_first_minutes):
         return client.isochrone(origin, t_first_minutes, modes=None)

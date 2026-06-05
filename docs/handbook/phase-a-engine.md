@@ -604,10 +604,11 @@ is `Long` in **seconds**, `transportModes` is `[TransportMode]`; date/time are p
 as separate `$date`/`$time` variables):
 
 ```graphql
-query Plan($from: InputCoordinates!, $to: InputCoordinates!, $date: String!,
-           $time: String!, $numItineraries: Int!, $searchWindow: Long,
-           $maxTransfers: Int, $modes: [TransportMode]) {
-  plan(from: $from, to: $to, date: $date, time: $time, arriveBy: false,
+query Plan($from: InputCoordinates, $to: InputCoordinates, $fromPlace: String,
+           $toPlace: String, $date: String!, $time: String!, $numItineraries: Int!,
+           $searchWindow: Long, $maxTransfers: Int, $modes: [TransportMode]) {
+  plan(from: $from, to: $to, fromPlace: $fromPlace, toPlace: $toPlace,
+       date: $date, time: $time, arriveBy: false,   # coords OR place (FeedId:StopId)
        numItineraries: $numItineraries,   # depth-scaled candidate budget
        searchWindow: $searchWindow,        # depth-scaled radius, seconds (Depth 2 ×2.5)
        maxTransfers: $maxTransfers,        # depth-scaled structural reach
