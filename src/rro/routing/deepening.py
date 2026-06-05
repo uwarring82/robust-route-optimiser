@@ -94,11 +94,17 @@ class CandidatePool:
         self._by_sig = {}
 
     def add(self, candidate: Candidate) -> bool:
-        """Add a candidate. Returns ``True`` if its backbone signature is new.
+        """Add a candidate. Returns ``True`` if it was **added** (new signature) or
+        **improved** an existing one (earlier arrival replaces); ``False`` for a
+        no-improvement merge.
 
-        A duplicate signature is **merged**: the earlier-arriving variant is kept
-        and the other's departure is recorded as an additional service, so the
-        full headway picture survives for connection-slack reasoning.
+        The True cases are exactly what ε-termination must see (§5.4) — a deeper
+        sweep that makes an existing route 50 min faster *is* a portfolio
+        improvement, even though the backbone signature is unchanged.
+
+        A duplicate signature is merged: the earlier-arriving variant is kept and
+        the other's departure recorded as an additional service, so the full
+        headway picture survives for connection-slack reasoning.
         """
         cur = self._by_sig.get(candidate.signature)
         if cur is None:
@@ -107,8 +113,8 @@ class CandidatePool:
         if candidate.arrival < cur.arrival:
             candidate.alt_departures = [*cur.alt_departures, cur.departure]
             self._by_sig[candidate.signature] = candidate
-        else:
-            cur.alt_departures.append(candidate.departure)
+            return True  # improved: earlier arrival for an existing signature
+        cur.alt_departures.append(candidate.departure)
         return False
 
     def routes(self) -> list:

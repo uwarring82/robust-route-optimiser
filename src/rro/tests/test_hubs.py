@@ -58,6 +58,20 @@ def test_hub_arrival_rejects_full_door_to_door_route():
         hub_arrival(it, 45)
 
 
+def test_hub_arrival_rejects_rail_first_mile_mode():
+    # Within T_first but RAIL is a backbone mode, not a first-mile access mode (§4.2).
+    it = _itin([_leg("RAIL", "Haßlinghausen", "Wuppertal Hbf", 0, 20)])
+    with pytest.raises(ValueError, match="non-first-mile mode"):
+        hub_arrival(it, 45)
+
+
+def test_hub_arrivals_skips_disallowed_mode():
+    bus = _itin([_leg("BUS", "Haßlinghausen", "Wuppertal Hbf", 0, 30)])
+    rail = _itin([_leg("RAIL", "Haßlinghausen", "Gevelsberg", 0, 20)])  # short but rail
+    hubs = hub_arrivals([bus, rail], t_first_minutes=45)
+    assert [h.hub_id for h in hubs] == ["Wuppertal Hbf"]
+
+
 def test_empty_itinerary_raises():
     with pytest.raises(ValueError):
         hub_arrival(OTPItinerary(start=_T0, end=_T0, legs=[]), 45)

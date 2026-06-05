@@ -495,6 +495,25 @@ C(r)/R calibration, scoring assembly → B4). Then the synthetic golden is repla
 
 ---
 
+## 2026-06-05 — Deepening review response (improvement detection + first-mile modes)
+
+- **Deepening ignored same-signature improvements (major).** `CandidatePool.add` returned `False` on
+  a duplicate signature even when the duplicate *replaced* the kept route with an earlier arrival, so
+  `deepen` left the improved candidate out of `new` and ε-terminated despite a real gain (a 50-min
+  improvement at Depth 1 skipped Depth 2). `add` now returns `True` on **added or improved**, so the
+  improvement reaches `_improves_any`.
+- **hub_arrival allowed disallowed first-mile modes (minor).** A 20-min `RAIL` itinerary became
+  `first_mile_mode='rail'`. Added an allowed-mode guard (walk/bus/taxi; OTP CAR/FLEX for taxi);
+  `hub_arrival` raises on a non-first-mile mode and `hub_arrivals` skips such itineraries.
+
+**Verification:** `python -m pytest` → **149 passed** (+4): deeper-after-same-signature-improvement,
+`add` improvement signalling, rail first-mile rejection, and `hub_arrivals` mode-skip.
+
+**Next:** end-to-end wiring — hubs → `plan_fn` → `deepen` → score → cluster → output, tested offline
+with a fake OTP client; then `cli.plan` produces a real portfolio over `data/sample/`.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.

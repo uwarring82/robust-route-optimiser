@@ -117,6 +117,28 @@ def test_deepen_stops_when_improvement_below_epsilon():
     assert len(routes) == 2                        # but both distinct routes are kept
 
 
+def test_deepen_runs_deeper_after_same_signature_improvement():
+    # A deeper sweep that makes an existing route 50 min faster IS an improvement,
+    # even though the backbone signature is unchanged — deepening must continue.
+    slow = _route("Wuppertal Hbf", "ICE 1", 0, 280)   # Depth 0
+    fast = _route("Wuppertal Hbf", "ICE 1", 0, 230)   # Depth 1: same sig, 50 min faster
+    plan = _plan_fn({0: [slow], 1: [fast], 2: []})
+    routes = deepen(plan, depths=3, epsilon=Epsilon(3, 0.05))
+    assert plan.calls == [0, 1, 2]                     # the improvement kept deepening alive
+    assert len(routes) == 1                            # same signature, merged
+    assert routes[0].total_minutes == 230              # the faster variant kept
+
+
+def test_pool_add_signals_improvement():
+    pool = CandidatePool()
+    slow = Candidate.from_itinerary(_route("Wuppertal Hbf", "ICE 1", 0, 280))
+    fast = Candidate.from_itinerary(_route("Wuppertal Hbf", "ICE 1", 0, 230))
+    assert pool.add(slow) is True   # added
+    assert pool.add(fast) is True   # improved (earlier arrival)
+    same = Candidate.from_itinerary(_route("Wuppertal Hbf", "ICE 1", 0, 230))
+    assert pool.add(same) is False  # no improvement → merge
+
+
 def test_deepen_accumulates_monotonically():
     a = _route("Wuppertal Hbf", "ICE 1", 0, 280)
     b = _route("Hagen Hbf", "ICE 2", 0, 250)

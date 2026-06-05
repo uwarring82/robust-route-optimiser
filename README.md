@@ -45,7 +45,7 @@ robust-route-optimiser/
 │   ├── data/ graph/ routing/      # ingest, OTP build, B1–B3
 │   ├── scoring/ portfolio/        # J(r)/C(r)/robustness, B4, JSON, §7 cards
 │   ├── cli.py                     # `rro plan` entry point
-│   └── tests/                     # pytest suite (145 tests) + golden/ portfolio
+│   └── tests/                     # pytest suite (149 tests) + golden/ portfolio
 ├── data/sample/                   # Small example GTFS/OSM fixture (never raw bulk)
 ├── pyproject.toml                 # Packaging, `rro` CLI, pytest config
 ├── .github/workflows/pages.yml    # GitHub Pages deployment
@@ -106,7 +106,7 @@ layered legs, B2 hub-arrival parsing), and the **B3 deepening controller** (dept
 pipeline wiring (typed stubs).
 
 ```bash
-python -m pytest          # 145 tests (pyproject sets pythonpath=src)
+python -m pytest          # 149 tests (pyproject sets pythonpath=src)
 PYTHONPATH=src python -m rro.cli plan --config corridor.yml --depart 2026-06-08T07:30:00+02:00
 ```
 

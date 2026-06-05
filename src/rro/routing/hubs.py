@@ -12,9 +12,17 @@ from __future__ import annotations
 
 from rro.models import HubArrival
 
+# First-mile modes are walk/bus/taxi only (handbook §4.2). Taxi may surface from
+# OTP as CAR/FLEX. RAIL/TRAM/SUBWAY are backbone/urban, not first-mile access.
+_ALLOWED_FIRST_MILE = {"WALK", "BUS", "TAXI", "CAR", "FLEX"}
+
 
 def _minutes(itinerary) -> float:
     return (itinerary.end - itinerary.start).total_seconds() / 60
+
+
+def _disallowed_modes(itinerary) -> set:
+    return {(l.mode or "").upper() for l in itinerary.legs} - _ALLOWED_FIRST_MILE
 
 
 def hub_arrival(itinerary, t_first_minutes: int, *, cost_eur: float = 0.0) -> HubArrival:
@@ -23,6 +31,8 @@ def hub_arrival(itinerary, t_first_minutes: int, *, cost_eur: float = 0.0) -> Hu
     ``t_first_minutes`` is the first-mile window; an itinerary longer than it is
     **not** a first-mile segment (e.g. a full door-to-door route) and raises
     :class:`ValueError` rather than silently emitting the destination as a hub.
+    The itinerary must also use only first-mile modes (walk/bus/taxi, §4.2) — a
+    rail leg means the "hub" is actually a backbone leg, so it is rejected.
 
     The hub is the itinerary's final stop; ``transfers`` counts first-mile vehicle
     changes (transit legs − 1); ``first_mile_mode`` is the mode of the leg arriving
@@ -36,6 +46,11 @@ def hub_arrival(itinerary, t_first_minutes: int, *, cost_eur: float = 0.0) -> Hu
         raise ValueError(
             f"itinerary is not a first-mile segment: {minutes:.0f} min exceeds "
             f"T_first = {t_first_minutes} min (a full route, not origin→hub)")
+    bad = _disallowed_modes(itinerary)
+    if bad:
+        raise ValueError(
+            f"first-mile itinerary uses non-first-mile mode(s) {sorted(bad)}; "
+            f"allowed: walk/bus/taxi (§4.2)")
     transit = [l for l in legs if (l.mode or "").upper() != "WALK"]
     last = legs[-1]
     return HubArrival(
@@ -51,13 +66,14 @@ def hub_arrivals(itineraries, t_first_minutes: int, *, costs: dict = None) -> li
     """Hub arrivals for itineraries reachable within ``T_first`` (§4.2).
 
     ``costs`` optionally maps itinerary index → first-mile fare (EUR). Itineraries
-    longer than ``T_first`` are skipped (not first-mile segments). The result is
-    the over-generated set; the static dominance filter prunes it (§4.3).
+    that aren't first-mile segments — longer than ``T_first`` or using a
+    non-first-mile mode (rail/tram/…) — are skipped. The result is the
+    over-generated set; the static dominance filter prunes it (§4.3).
     """
     costs = costs or {}
     out = []
     for i, it in enumerate(itineraries):
-        if _minutes(it) <= t_first_minutes:
+        if _minutes(it) <= t_first_minutes and not _disallowed_modes(it):
             out.append(hub_arrival(it, t_first_minutes, cost_eur=costs.get(i, 0.0)))
     return out
 
