@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+title: "Robust Route Optimiser (RRO)"
+message: "If you use this framework or its documentation, please cite it as below."
+type: software
+authors:
+  - family-names: Warring
+    given-names: Ulrich
+    affiliation: "Physikalisches Institut, Albert-Ludwigs-Universität Freiburg"
+    # TODO: add ORCID iD to complete Findable metadata, e.g.:
+    # orcid: "https://orcid.org/0000-0000-0000-0000"
+abstract: >-
+  RRO is a state-dependent multimodal routing framework for robust travel
+  decisions on the Haßlinghausen → Freiburg (Breisgau) corridor. It treats the
+  transport graph as state-dependent (topology changes with weather,
+  infrastructure, and disruptions), searches for a portfolio of strategies
+  (fastest, most robust, most creative, fewest transfers) rather than a single
+  best route, and architecturally separates forecast robustness from decision
+  robustness.
+keywords:
+  - route optimization
+  - multimodal routing
+  - robust optimization
+  - transport networks
+  - state-dependent graph
+  - GTFS
+  - decision robustness
+  - open science
+version: "0.6.0-rc1"
+date-released: "2026-03-17"
+license:
+  - CC-BY-SA-4.0
+  - MIT
+repository-code: "https://github.com/uwarring82/robust-route-optimiser"
+url: "https://uwarring82.github.io/robust-route-optimiser/"

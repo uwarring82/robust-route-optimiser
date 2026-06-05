@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# Jekyll / GitHub Pages local build
+_site/
+.jekyll-cache/
+.jekyll-metadata
+.sass-cache/
+
+# Python (future src/)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Data — never commit raw bulk
+data/raw/
+*.sqlite
+*.db
+
+# Editor / IDE
+.idea/
+*.swp

@@ -3,7 +3,11 @@
 **State-dependent multimodal routing for robust travel decisions.**
 
 [![Pages](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://uwarring82.github.io/robust-route-optimiser/)
-[![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
+[![Docs: CC BY-SA 4.0](https://img.shields.io/badge/Docs-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
+[![Code: MIT](https://img.shields.io/badge/Code-MIT-green.svg)](LICENSE-CODE)
+<!-- DOI badge — add after the first Zenodo-archived release:
+[![DOI](https://zenodo.org/badge/DOI/<CONCEPT-DOI>.svg)](https://doi.org/<CONCEPT-DOI>) -->
+[![DOI](https://img.shields.io/badge/DOI-pending%20Zenodo-orange.svg)](#how-to-cite)
 
 ---
 
@@ -22,8 +26,9 @@ The framework is designed for a specific corridor but the architecture generalis
 
 ```
 robust-route-optimiser/
-├── docs/                          # Published documentation (GitHub Pages)
+├── docs/                          # Published documentation (Jekyll, built from ./docs)
 │   ├── index.md                   # Landing page
+│   ├── _config.yml                # Jekyll config
 │   ├── coastline/                 # Stable framework architecture
 │   │   └── rro-coastline-v0.6.0-rc1.md
 │   ├── demo/                      # Interactive static demo
@@ -31,14 +36,19 @@ robust-route-optimiser/
 │   ├── handbook/                  # Implementation handbooks
 │   │   ├── phase-a-engine.md      # (planned)
 │   │   ├── phase-b-state-graph.md # (planned)
-│   │   └── phase-c-logger.md     # (planned)
-│   └── notes/                     # Design log and open sketches
-│       └── design-log.md
+│   │   └── phase-c-logger.md      # (planned)
+│   └── notes/
+│       ├── design-log.md          # Architectural deliberation
+│       └── logbook.md             # Operational steps, infrastructure, FAIR
 ├── src/                           # Engine code (future; not yet created)
 ├── data/sample/                   # Small example data (future; not yet created)
 ├── .github/workflows/pages.yml    # GitHub Pages deployment
+├── CITATION.cff                   # Machine-readable citation (FAIR · Findable)
+├── codemeta.json                  # Software metadata, CodeMeta (FAIR · Interoperable)
+├── .zenodo.json                   # Zenodo archival metadata (FAIR · Findable)
 ├── README.md                      # This file
-└── LICENSE
+├── LICENSE                        # Documentation licence (CC BY-SA 4.0)
+└── LICENSE-CODE                   # Code licence (MIT)
 ```
 
 ## Documentation
@@ -78,8 +88,20 @@ RRO is part of the [Open-Science Harbour](https://uwarring82.github.io/me). It f
 
 ## Licence
 
-Documentation: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
-Code (future): TBD — will be specified when `src/` is populated.
+This project is **dual-licensed**:
+
+- **Documentation** (everything under `docs/`, plus `README.md`): [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) — see [`LICENSE`](LICENSE).
+- **Code** (everything under `src/`, once populated): [MIT](https://opensource.org/licenses/MIT) — see [`LICENSE-CODE`](LICENSE-CODE).
+
+## How to cite
+
+Machine-readable citation metadata lives in [`CITATION.cff`](CITATION.cff); GitHub renders a
+**"Cite this repository"** button from it. Software metadata follows the
+[CodeMeta](https://codemeta.github.io/) standard in [`codemeta.json`](codemeta.json).
+
+A persistent **DOI** will be minted on the first [Zenodo](https://zenodo.org/)-archived release
+(deposition metadata is prepared in [`.zenodo.json`](.zenodo.json)). Until then, please cite the
+version tag (`v0.6.0-rc1`) and the repository URL.
 
 ## Author
 

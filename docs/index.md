@@ -41,7 +41,8 @@ Handbooks define *how the system is built*. They are subordinate to the coastlin
 
 Working notes, open questions, and deliberation records.
 
-→ **[Design Log](notes/design-log)**
+→ **[Design Log](notes/design-log)** — architectural deliberation
+→ **[Project Logbook](notes/logbook)** — operational steps, infrastructure, FAIR
 
 ---
 

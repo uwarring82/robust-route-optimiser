@@ -1,0 +1,36 @@
+{
+  "title": "Robust Route Optimiser (RRO)",
+  "upload_type": "software",
+  "description": "<p>State-dependent multimodal routing framework for robust travel decisions on the Haßlinghausen &rarr; Freiburg (Breisgau) corridor. Treats the transport graph as state-dependent (topology changes with weather, infrastructure, and disruptions), searches for a portfolio of strategies rather than a single best route, and architecturally separates forecast robustness from decision robustness.</p>",
+  "creators": [
+    {
+      "name": "Warring, Ulrich",
+      "affiliation": "Physikalisches Institut, Albert-Ludwigs-Universität Freiburg"
+    }
+  ],
+  "access_right": "open",
+  "license": "cc-by-sa-4.0",
+  "version": "0.6.0-rc1",
+  "keywords": [
+    "route optimization",
+    "multimodal routing",
+    "robust optimization",
+    "transport networks",
+    "state-dependent graph",
+    "GTFS",
+    "decision robustness",
+    "open science"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/uwarring82/robust-route-optimiser",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://uwarring82.github.io/robust-route-optimiser/",
+      "relation": "isDocumentedBy",
+      "scheme": "url"
+    }
+  ]
+}
