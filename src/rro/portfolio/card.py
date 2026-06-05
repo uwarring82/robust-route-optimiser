@@ -11,9 +11,8 @@ from __future__ import annotations
 from typing import Optional
 
 from rro.models import Card
-
-# Layers whose line-changes count as transfers (the appended last mile does not, §4.1).
-_COUNTED_LAYERS = ("first_mile", "backbone")
+# The §4.1 transfer/station semantics are B1-owned; re-exported here for callers.
+from rro.routing.decompose import transfer_stations  # noqa: F401
 
 
 def hhmm(dep_or_arr: str) -> str:
@@ -21,16 +20,6 @@ def hhmm(dep_or_arr: str) -> str:
     if "T" in dep_or_arr:
         return dep_or_arr.split("T", 1)[1][:5]
     return dep_or_arr[:5]
-
-
-def transfer_stations(legs) -> list:
-    """Transfer stations over first-mile + backbone boundaries only (handbook §4.1).
-
-    The last-mile boarding is excluded. The station is the arrival point of each
-    counted leg that is followed by another counted leg.
-    """
-    counted = [l for l in legs if l.layer in _COUNTED_LAYERS]
-    return [counted[i].to for i in range(len(counted) - 1)]
 
 
 def build_card(strategy_label: str, legs, *, price_eur: Optional[float] = None,

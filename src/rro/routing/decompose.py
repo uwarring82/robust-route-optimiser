@@ -88,3 +88,35 @@ def feeder_hub(legs: list):
         if leg.layer == "backbone":
             return leg.from_
     return None
+
+
+# Layers whose line-changes count as transfers (the appended last mile does not, §4.1).
+_COUNTED_LAYERS = ("first_mile", "backbone")
+
+
+def transfer_stations(legs: list) -> list:
+    """Transfer stations over first-mile + backbone boundaries only (handbook §4.1).
+
+    The last-mile boarding is excluded — the station is the arrival point of each
+    counted leg that is followed by another counted leg.
+    """
+    counted = [l for l in legs if l.layer in _COUNTED_LAYERS]
+    return [counted[i].to for i in range(len(counted) - 1)]
+
+
+def count_transfers(legs: list) -> int:
+    """Number of counted transfers (first-mile + backbone line changes, §4.1)."""
+    return len(transfer_stations(legs))
+
+
+def min_transfer_slack(legs: list):
+    """Smallest connection buffer over counted transfers (§4.1), or ``None``.
+
+    A counted transfer is a boundary between two counted (non-last-mile) legs; its
+    buffer is the earlier leg's ``transfer_slack_min``. The buffer *into* an
+    appended last-mile leg is excluded.
+    """
+    buffers = [legs[i].transfer_slack_min for i in range(len(legs) - 1)
+               if legs[i].layer in _COUNTED_LAYERS and legs[i + 1].layer in _COUNTED_LAYERS
+               and legs[i].transfer_slack_min is not None]
+    return min(buffers) if buffers else None

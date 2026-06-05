@@ -2,12 +2,30 @@
 
 Depth 0 (direct + 1-transfer) → Depth 1 (2-transfer) → Depth 2 (creative ×2.5),
 with ε-termination. Routing is schedule-based (no GTFS-RT) on ``G_base``.
+
+The controller is parameterised by an injectable ``plan_fn(params) -> list`` that
+returns full-route :class:`OTPItinerary`s for a depth's parameters — so it is
+testable against recorded responses and decoupled from OTP coordinate/place
+details. It decomposes each itinerary (B1), keys a dedup pool by the backbone
+:func:`route_signature`, and halts when a deeper sweep stops contributing
+portfolio-relevant routes.
 """
 
 from __future__ import annotations
 
-# Depth ladder knobs (handbook §5.1). ``creative_factor`` and ε live in config.
+from dataclasses import dataclass, field
+
+from rro.config import Epsilon
+from rro.routing.decompose import (
+    count_transfers,
+    decompose,
+    min_transfer_slack,
+)
+
+# Depth ladder (handbook §5.1). Depth 2 scales budget + window by the creative factor.
 CREATIVE_FACTOR = 2.5
+BASE_BUDGET = 6
+BASE_SEARCH_WINDOW_S = 3600
 DEPTH_PARAMS = {
     0: {"max_transfers": 1, "budget_mult": 1.0, "window_mult": 1.0},
     1: {"max_transfers": 2, "budget_mult": 1.0, "window_mult": 1.0},
@@ -25,19 +43,136 @@ def route_signature(legs) -> tuple:
     different signatures → distinct candidates; same hub + different first-mile
     mode → shared signature → merged (§4.3, §5.3).
     """
-    return tuple(
-        (leg.line, leg.from_, leg.to)
-        for leg in legs
-        if leg.layer == "backbone"
-    )
+    return tuple((leg.line, leg.from_, leg.to) for leg in legs if leg.layer == "backbone")
 
 
-def improves_any(new_routes, pool, criteria, eps) -> bool:
-    """ε-termination test: does any route in ``new_routes`` better an active
-    portfolio criterion beyond its ε threshold (handbook §5.4)? Stub."""
-    raise NotImplementedError("Phase A scaffold: ε-termination test pending scored pool")
+def depth_params(depth: int, base_budget: int = BASE_BUDGET,
+                 base_window_s: int = BASE_SEARCH_WINDOW_S) -> dict:
+    """OTP query parameters for a depth (handbook §5.1). Depths > 2 clamp to Depth 2."""
+    p = DEPTH_PARAMS[min(depth, 2)]
+    return {
+        "depth": depth,
+        "max_transfers": p["max_transfers"],
+        "num_itineraries": round(base_budget * p["budget_mult"]),
+        "search_window_s": round(base_window_s * p["window_mult"]),
+    }
 
 
-def deepen(hubs, client, config):
-    """Run Depth 0/1/2 deepening into a deduplicated candidate pool (§5). Stub."""
-    raise NotImplementedError("Phase A scaffold: deepening controller pending OTP client")
+@dataclass
+class Candidate:
+    """A full-route candidate in the deepening pool (handbook §5.3)."""
+
+    legs: list  # door-to-door decomposed Legs
+    signature: tuple
+    departure: object  # datetime
+    arrival: object  # datetime
+    alt_departures: list = field(default_factory=list)
+
+    @classmethod
+    def from_itinerary(cls, itinerary, *, tz=None) -> "Candidate":
+        legs = decompose(itinerary, tz=tz)
+        return cls(legs=legs, signature=route_signature(legs),
+                   departure=itinerary.start, arrival=itinerary.end)
+
+    @property
+    def total_minutes(self) -> float:
+        return (self.arrival - self.departure).total_seconds() / 60
+
+    @property
+    def transfers(self) -> int:
+        return count_transfers(self.legs)
+
+    @property
+    def min_slack(self):
+        return min_transfer_slack(self.legs)
+
+
+class CandidatePool:
+    """Dedup pool keyed by backbone signature; monotone-accumulating (handbook §5.3)."""
+
+    def __init__(self):
+        self._by_sig = {}
+
+    def add(self, candidate: Candidate) -> bool:
+        """Add a candidate. Returns ``True`` if its backbone signature is new.
+
+        A duplicate signature is **merged**: the earlier-arriving variant is kept
+        and the other's departure is recorded as an additional service, so the
+        full headway picture survives for connection-slack reasoning.
+        """
+        cur = self._by_sig.get(candidate.signature)
+        if cur is None:
+            self._by_sig[candidate.signature] = candidate
+            return True
+        if candidate.arrival < cur.arrival:
+            candidate.alt_departures = [*cur.alt_departures, cur.departure]
+            self._by_sig[candidate.signature] = candidate
+        else:
+            cur.alt_departures.append(candidate.departure)
+        return False
+
+    def routes(self) -> list:
+        return list(self._by_sig.values())
+
+    def metrics(self):
+        """Incumbent best per criterion, or ``None`` when the pool is empty (§5.4)."""
+        rs = self.routes()
+        if not rs:
+            return None
+        return {
+            "best_time": min(r.total_minutes for r in rs),
+            "best_slack": max((r.min_slack or 0.0) for r in rs),
+            "min_transfers": min(r.transfers for r in rs),
+        }
+
+
+def _improves_any(new: list, incumbent, epsilon: Epsilon, creativity_of=None) -> bool:
+    """ε-termination test: does any new route better an active criterion by > ε (§5.4)?
+
+    Active Phase A criteria: E[T_eff] (= schedule time), structural slack, transfers,
+    and — when a ``creativity_of`` callable is supplied — C(r).
+    """
+    if not new:
+        return False
+    if incumbent is None:  # pool was empty before this depth → any route improves
+        return True
+    for r in new:
+        if incumbent["best_time"] - r.total_minutes > epsilon.time_min:
+            return True
+        if (r.min_slack or 0.0) - incumbent["best_slack"] > epsilon.time_min:
+            return True
+        if r.transfers < incumbent["min_transfers"]:
+            return True
+        if creativity_of is not None:
+            if creativity_of(r) - (incumbent.get("best_creativity") or 0.0) > epsilon.creativity:
+                return True
+    return False
+
+
+def deepen(plan_fn, *, depths: int = 3, base_budget: int = BASE_BUDGET,
+           base_window_s: int = BASE_SEARCH_WINDOW_S, epsilon: Epsilon = None,
+           creativity_of=None, tz=None) -> list:
+    """Run Depth 0/1/2 progressive deepening into a deduplicated pool (handbook §5).
+
+    ``plan_fn(params)`` returns the full-route itineraries for a depth's params
+    (``depth``, ``max_transfers``, ``num_itineraries``, ``search_window_s``). The
+    pool accumulates monotonically across depths; deepening halts once a depth's
+    newly admitted routes fail to improve any active criterion beyond ε (Depth 0
+    always runs, since the pool starts empty). Returns the candidate list.
+    """
+    epsilon = epsilon or Epsilon()
+    pool = CandidatePool()
+    for depth in range(depths):
+        params = depth_params(depth, base_budget, base_window_s)
+        incumbent = pool.metrics()
+        if incumbent is not None and creativity_of is not None:
+            incumbent["best_creativity"] = max(
+                (creativity_of(r) for r in pool.routes()), default=None)
+        new = []
+        for itinerary in plan_fn(params):
+            cand = Candidate.from_itinerary(itinerary, tz=tz)
+            if pool.add(cand):
+                new.append(cand)
+        if not _improves_any(new, incumbent, epsilon, creativity_of):
+            break
+    return pool.routes()

@@ -469,6 +469,32 @@ pool — the last major piece before the pipeline runs end-to-end.
 
 ---
 
+## 2026-06-05 — IO: B3 progressive-deepening controller
+
+Implemented `routing/deepening.py` (handbook §5) — the last major algorithmic piece.
+
+- **Refactor first:** moved the §4.1 transfer/slack semantics (`transfer_stations`, `count_transfers`,
+  `min_transfer_slack`) into `decompose.py` (B1-owned); `card.py` re-exports `transfer_stations` so
+  existing imports/tests are unaffected.
+- **Controller:** `depth_params` (Depth 0/1/2 ladder: maxTransfers 1/2/2, budget 6/6/15, window
+  ×2.5 at Depth 2); `Candidate.from_itinerary` (decompose → backbone `route_signature` + structural
+  metrics); `CandidatePool` (dedup by signature, **merge** keeps the earlier arrival and records
+  alternative departures, monotone-accumulating); `_improves_any` ε-termination over E[T_eff] /
+  structural slack / transfers / optional C(r); `deepen(plan_fn, …)` runs the ladder and halts when a
+  depth adds no improvement (Depth 0 unconditional). `plan_fn` is **injectable** — testable against
+  recorded itineraries, decoupled from OTP place/coords.
+
+**Verification:** `python -m pytest` → **145 passed** (+10): depth ladder + clamp, candidate metrics,
+pool dedup/merge (both add orders), ε-termination (stop on no-new, continue while improving, stop on
+sub-ε gain), monotone accumulation, empty-first-depth stop.
+
+**Remaining for end-to-end:** `graph/build.py` (OTP graph build), `otp_client.isochrone` +
+`hubs.enumerate_hubs` (hub discovery), and the top-level wiring (hub assembly → `plan_fn`, two-pass
+C(r)/R calibration, scoring assembly → B4). Then the synthetic golden is replaced by one over the
+`data/sample/` fixture.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.
