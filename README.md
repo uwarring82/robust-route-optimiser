@@ -40,8 +40,14 @@ robust-route-optimiser/
 │   └── notes/
 │       ├── design-log.md          # Architectural deliberation
 │       └── logbook.md             # Operational steps, infrastructure, FAIR
-├── src/                           # Engine code (future; not yet created)
-├── data/sample/                   # Small example data (future; not yet created)
+├── src/rro/                       # Phase A engine package
+│   ├── config.py                  # YAML contract loader (strict)
+│   ├── data/ graph/ routing/      # ingest, OTP build, B1–B3
+│   ├── scoring/ portfolio/        # J(r)/C(r)/robustness, B4, JSON, §7 cards
+│   ├── cli.py                     # `rro plan` entry point
+│   └── tests/                     # pytest suite (28 tests) + golden/ fixtures
+├── data/sample/                   # Small example GTFS/OSM fixture (never raw bulk)
+├── pyproject.toml                 # Packaging, `rro` CLI, pytest config
 ├── .github/workflows/pages.yml    # GitHub Pages deployment
 ├── CITATION.cff                   # Machine-readable citation (FAIR · Findable)
 ├── codemeta.json                  # Software metadata, CodeMeta (FAIR · Interoperable)
@@ -83,9 +89,22 @@ RRO is part of the [Open-Science Harbour](https://uwarring82.github.io/me). It f
 | Phase | Status |
 |---|---|
 | Coastline architecture | ✅ v0.6.0-rc1 freeze candidate |
-| Phase A — Static prototype | 📝 Handbook drafted; implementation not started |
+| Phase A — Static prototype | 🔨 Scaffold + unit tests; B1–B4 pipeline pending |
 | Phase B — Real-time + G′ | 🔲 Not started |
 | Phase C — Historical conditioning | 🔲 Not started |
+
+## Development
+
+The Phase A engine lives in [`src/rro/`](src/rro/) (Python 3.11+), implementing the
+[Phase A handbook](docs/handbook/phase-a-engine.md). The fully-specified pure functions
+(config, `J(r)`/`C(r)`/robustness, dominance, route signature, serialisation, §7 cards) are
+implemented and tested; the OTP/IO pieces (ingest, graph build, hub discovery, deepening) are
+typed stubs.
+
+```bash
+python -m pytest          # 28 tests (pyproject sets pythonpath=src)
+PYTHONPATH=src python -m rro.cli plan --config corridor.yml --depart 2026-06-08T07:30:00+02:00
+```
 
 ## Licence
 

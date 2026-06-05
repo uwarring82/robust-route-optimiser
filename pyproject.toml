@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rro"
+version = "0.1.0a0"
+description = "Robust Route Optimiser — Phase A static engine"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Ulrich Warring" }]
+keywords = ["routing", "multimodal", "robust-optimization", "gtfs", "otp"]
+dependencies = ["PyYAML>=6.0"]
+
+# Phase A engine version, mirrored in rro.ENGINE_VERSION and every JSON `query`
+# block (handbook §2.7). Kept as the PEP 440 form of "0.1.0-a".
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+rro = "rro.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rro"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["src/rro/tests"]

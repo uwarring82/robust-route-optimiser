@@ -7,12 +7,16 @@ _site/
 .jekyll-metadata
 .sass-cache/
 
-# Python (future src/)
+# Python
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 .env
+.pytest_cache/
+*.egg-info/
+build/
+dist/
 
 # Data — never commit raw bulk
 data/raw/

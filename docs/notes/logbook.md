@@ -181,6 +181,36 @@ J / expected_arrival invariants hold.
 
 ---
 
+## 2026-06-05 — Phase A engine scaffold (`src/rro/`)
+
+First code in the repo. Scaffolded the Phase A package to the handbook §2.5 module map,
+implementing the fully-specified **pure** functions for real and leaving typed stubs
+(`NotImplementedError` citing the handbook) for the OTP/IO pieces.
+
+- **Implemented + tested:** `config.py` (strict YAML contract, unknown-key rejection,
+  `departure_time` enforcement §8.3); `scoring/objective.py` (`J`, degenerate `Q₀.₈`),
+  `scoring/creativity.py` (`C(r)` formula), `scoring/robustness.py` (lexicographic key);
+  `routing/dominance.py` (Pareto/`is_dominated`), `routing/deepening.py` `route_signature`
+  (feeder hub in identity); `portfolio/output.py` (canonical JSON, `from_`→`"from"`),
+  `portfolio/card.py` (`build_card` with §4.1 last-mile transfer exclusion); `cli.py`
+  (`rro plan`, exit codes 0/2/3/4).
+- **Stubbed:** `data/ingest`+`feeds`, `graph/build`+`otp_client`, `routing/decompose`+`hubs`,
+  `scoring` geometry, `portfolio/cluster` (with `UnderfullPortfolioError` for the §7.1 floor).
+- **Packaging:** `pyproject.toml` (MIT, `rro` entry point, pytest `pythonpath=src`).
+- **Test fixtures:** `data/sample/`, `src/rro/tests/golden/`, `…/data/broken/` with READMEs
+  describing the frozen-GTFS / golden-portfolio / negative-feed fixtures (handbook §3.3, §8.4).
+
+**Verification:** `python -m pytest` → **28 passed**. Tests cover config strictness, the §2.8
+`J` rounding example (`309.0 − 0.7·0.58 = 308.6`), `C(r)`, robustness ordering, dominance
+(incl. mode-tie retention), `route_signature` (different hubs → different signatures), and the
+last-mile transfer-exclusion + `"from"` serialisation. End-to-end: a real YAML config loads,
+the CLI returns exit `2` on config errors, and a valid config reaches the pipeline stub.
+
+**Status:** README Phase A row → "Scaffold + unit tests; B1–B4 pipeline pending". Next:
+fill the routing→scoring→clustering pipeline and produce the first golden-route portfolio.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.
