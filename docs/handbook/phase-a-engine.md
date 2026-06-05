@@ -90,7 +90,7 @@ The following are **out of scope** for Phase A and appear in this handbook only 
 - **Phase C:** Monte Carlo with full `p(ΔT \| x)`; the conditioned delay model with hierarchical features (Coastline §3.2); historical conditioning and CDFs; the corridor logger; `α_RT` / `α_C` / quantile re-calibration. (Coastline §0.4, §3, §5 *Phase C*.)
 - **R-blending** of the creativity reference set (Coastline §0.3): activates only on a structural GTFS change and is a forward-hook in Phase A.
 
-Comfort scoring (Coastline §0.5) is **optional** and defaults to off; the JSON `comfort` and `risks` card fields may be left empty in Phase A.
+Comfort scoring (Coastline §0.5) is **optional** and defaults to off; the JSON `comfort` field may be left empty in Phase A, and `risks` is empty except for an experimental-taxi low-confidence warning (§4.2).
 
 ---
 
@@ -241,6 +241,7 @@ The single canonical representation of `epsilon` is a **map** of its two indepen
 ```yaml
 origin: "Haßlinghausen"
 destination: "Freiburg (Breisgau) Hbf"
+departure_time: "2026-06-05T08:00:00+02:00"   # required via config OR --depart; --depart overrides
 t_first_minutes: 45
 depths: 3
 epsilon:
@@ -324,8 +325,8 @@ Layer C emits the canonical JSON portfolio. `portfolio/output.py` produces the d
         "reference_km": 312.4
       },
       "legs": [
-        { "layer": "first_mile", "mode": "bus", "from": "Haßlinghausen", "to": "Wuppertal Hbf", "dep": "08:05", "arr": "08:38", "line": "CE61", "transfer_slack_min": 11 },
-        { "layer": "backbone", "mode": "rail", "from": "Wuppertal Hbf", "to": "Freiburg (Breisgau) Hbf", "dep": "08:49", "arr": "12:31", "line": "ICE", "transfer_slack_min": null }
+        { "layer": "first_mile", "mode": "bus", "from": "Haßlinghausen", "to": "Wuppertal Hbf", "dep": "2026-06-05T08:05:00+02:00", "arr": "2026-06-05T08:38:00+02:00", "line": "CE61", "transfer_slack_min": 11 },
+        { "layer": "backbone", "mode": "rail", "from": "Wuppertal Hbf", "to": "Freiburg (Breisgau) Hbf", "dep": "2026-06-05T08:49:00+02:00", "arr": "2026-06-05T12:31:00+02:00", "line": "ICE", "transfer_slack_min": null }
       ],
       "card": {
         "strategy_label": "Sicherste",
@@ -353,7 +354,7 @@ Field rules in Phase A, consistent across the handbook:
 - `card.comfort` is optional and empty in Phase A; `card.risks` is empty **except** a low-confidence warning string when an experimental taxi first-mile leg is selected (Coastline §6, §4.2). No B/C signals are active.
 - `card.price_eur` may be `null` where fare data is unavailable in the static slice.
 - **Numeric precision.** Minute-valued fields (`J`, `Q08_T_eff_min`, `E_T_eff_min`, `*_slack_min`) are emitted rounded to **one decimal**; `creativity` to **two decimals**. The invariants above hold up to that rounding (e.g. `309.0 − 0.7·0.58 = 308.594 → 308.6`).
-- **Time formats.** `legs[].dep` / `legs[].arr` are **ISO 8601** datetimes with offset in emitted JSON (as shown in §8.1); worked examples elsewhere abbreviate them to `HH:MM` for readability. `card.expected_arrival` is always local **`HH:MM`**, equal to the last leg's arrival.
+- **Time formats.** `legs[].dep` / `legs[].arr` are **ISO 8601** datetimes with offset in emitted JSON (as in the contract example above and §8.1). For readability, the multi-strategy worked examples in §4.4, §5.6, and §7.2 abbreviate leg times to `HH:MM`. `card.expected_arrival` is always local **`HH:MM`**, equal to the last leg's arrival.
 
 See [Coastline v0.6.0-rc1](../coastline/rro-coastline-v0.6.0-rc1) for the governing boundaries (B1–B4), the objective function (§0.2), and the user-facing card specification (§7).
 
@@ -713,7 +714,7 @@ Each surviving candidate carries the fields B4 and the cards consume. The deepen
 }
 ```
 
-`J = Q08_T_eff_min − α_C·creativity = 327.0 − 0.7·0.41 = 326.71` (Coastline §0.2); `Q08_T_eff_min` equals `E_T_eff_min` and `confidence` is the literal string `"scheduled"` — both direct consequences of T_eff = T_schedule, consistent with Coastline §7 deriving the displayed `±X min` from Q₀.₈ − E[T_eff] (= 0 here). `comfort` and `risks` are empty in Phase A.
+`J = Q08_T_eff_min − α_C·creativity = 327.0 − 0.7·0.41 = 326.71` (Coastline §0.2); `Q08_T_eff_min` equals `E_T_eff_min` and `confidence` is the literal string `"scheduled"` — both direct consequences of T_eff = T_schedule, consistent with Coastline §7 deriving the displayed `±X min` from Q₀.₈ − E[T_eff] (= 0 here). `comfort` is empty in Phase A and `risks` is empty unless an experimental-taxi warning applies (§4.2).
 
 ### 5.7  Falsification hook (forward-hook only)
 
@@ -950,7 +951,7 @@ Ordering of `strategies` in the output follows the same fixed precedence so the 
 
 ### 7.2  Output serialisation (`portfolio/output.py`)
 
-`portfolio/output.py` renders the **full canonical JSON portfolio** below. Field names are exact and stable across phases; Phase A populates the deterministic subset and leaves forward-hook fields empty or constant. Each strategy's `legs[]` terminate at the stated `card.expected_arrival` and contain every transfer station and every transfer the `transfers` count implies (the last-mile leg is included; `expected_arrival = E[T_eff] = T_schedule =` the last leg's `arr`).
+`portfolio/output.py` renders a complete multi-strategy portfolio below; **field names are exact and stable across phases** and Phase A populates the deterministic subset, leaving forward-hook fields empty or constant. For readability the leg `dep`/`arr` here are abbreviated to `HH:MM` — the canonical wire format is ISO 8601, as in §2.8 and §8.1. Each strategy's `legs[]` terminate at the stated `card.expected_arrival` and contain every transfer station and every transfer the `transfers` count implies (the last-mile leg is included; `expected_arrival = E[T_eff] = T_schedule =` the last leg's `arr`).
 
 ```json
 {
@@ -1163,7 +1164,7 @@ Coastline §7 derives the displayed confidence as a „±X min" 80% interval fro
 
 Per Coastline §7, **no Q₀.₈, Q₀.₉₅, S_node, ρ_disruption numerical values or feature vectors are surfaced** on the card. The robustness proxy keys, J(r), creativity C(r), backbone km, and the raw quantile fields remain in the `score` object for tooling, golden-route tests, and optional advanced detail views, but never appear on the user-facing card. The user sees labels, the HH:MM arrival, the `"scheduled"` confidence string, transfer count and station names, and price.
 
-**Forward-hooks (not active Phase A behaviour):** the §7 weather-warning icon (A1), the populated `comfort` annotations (§0.5), and the populated `risks` list (S_node / B-signals) are deferred to Phase B/C. In Phase A `comfort` and `risks` are empty and no weather field is emitted; `portfolio/card.py` must leave these slots inert rather than synthesise placeholder values.
+**Forward-hooks (not active Phase A behaviour):** the §7 weather-warning icon (A1), the populated `comfort` annotations (§0.5), and the populated `risks` list (S_node / B-signals) are deferred to Phase B/C. In Phase A `comfort` is empty and no weather field is emitted; `risks` is empty **except** an experimental-taxi low-confidence warning (§4.2). `portfolio/card.py` must otherwise leave these slots inert rather than synthesise placeholder values.
 
 ---
 
@@ -1319,6 +1320,7 @@ The two-pass creativity protocol (Coastline §0.3) is visible here: `alpha_c=0.0
 # corridor.yml — consumed by src/rro/config.py
 origin: "Haßlinghausen"
 destination: "Freiburg (Breisgau) Hbf"
+departure_time: "2026-06-08T07:30:00+02:00"  # required via config OR --depart; --depart overrides
 t_first_minutes: 45          # B2 first-mile window T_first (Coastline §B2)
 depths: 3                    # B3 Depth 0/1/2 (Coastline §B3)
 epsilon:
@@ -1357,7 +1359,7 @@ feeds:                       # corridor feed registry (data/feeds.py)
     sha256: "<digest>"
 ```
 
-The `epsilon` map carries both contract defaults explicitly: `epsilon.time_min` (3 min) and `epsilon.creativity` (0.05), each independently calibration-adjustable (Coastline §6). The C(r) threshold is overridable via the `epsilon.creativity` key (or the `--epsilon` CLI override accepting either component). `quantile` is carried through to the JSON `parameters` block for provenance even though it has no effect under the degenerate distribution; `parameters.epsilon` in the emitted JSON serialises the `time_min` component.
+The `epsilon` map carries both contract defaults explicitly: `epsilon.time_min` (3 min) and `epsilon.creativity` (0.05), each independently calibration-adjustable (Coastline §6). The C(r) threshold is overridable via the `epsilon.creativity` key (or the `--epsilon` CLI override accepting either component). `quantile` is carried through to the JSON `parameters` block for provenance even though it has no effect under the degenerate distribution; `parameters.epsilon` in the emitted JSON serialises the `time_min` component. `departure_time` may be set here for reproducible runs or supplied per-call via `--depart` (CLI) / `plan(depart=…)` (Jupyter), which override the config value; `config.py` accepts its absence and `plan()` / the CLI raises a usage error if neither config nor the call provides it.
 
 ### 8.4  Testing
 

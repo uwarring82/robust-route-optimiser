@@ -161,6 +161,26 @@ transfers, expected_arrival, terminal-null) still holds.
 
 ---
 
+## 2026-06-05 — Phase A handbook: review response (round 2)
+
+Follow-up review caught three issues introduced or missed in round 1:
+
+- **Time format vs examples (major).** Round 1 added the rule "legs are ISO 8601" but left the
+  §2.8/§7.2 canonical examples in `HH:MM`. Converted the **§2.8 output-contract** example to ISO
+  (now the canonical wire-format example alongside §8.1); marked §7.2 (and §4.4/§5.6) as `HH:MM`-
+  abbreviated for readability, with the time-format bullet naming which examples are which.
+- **Taxi-risk residual (major).** The §7.3 "Forward-hooks" paragraph still said `risks` are
+  empty/inert. Added the experimental-taxi carve-out there, and swept the whole document — two more
+  absolute "risks empty" statements (§1.5, §5.6) now carry the carve-out. A grep confirms none remain.
+- **`departure_time` in examples (minor).** Added it to both `corridor.yml` examples (§2.6, §8.3)
+  and documented enforcement: config may set it, `--depart` / `plan(depart=…)` override, and the
+  engine errors if neither provides it.
+
+Re-validated: 6 JSON blocks parse; §2.8 legs are ISO; both YAML configs parse with `departure_time`;
+J / expected_arrival invariants hold.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.
