@@ -45,7 +45,7 @@ robust-route-optimiser/
 │   ├── data/ graph/ routing/      # ingest, OTP build, B1–B3
 │   ├── scoring/ portfolio/        # J(r)/C(r)/robustness, B4, JSON, §7 cards
 │   ├── cli.py                     # `rro plan` entry point
-│   └── tests/                     # pytest suite (119 tests) + golden/ portfolio
+│   └── tests/                     # pytest suite (131 tests) + golden/ portfolio
 ├── data/sample/                   # Small example GTFS/OSM fixture (never raw bulk)
 ├── pyproject.toml                 # Packaging, `rro` CLI, pytest config
 ├── .github/workflows/pages.yml    # GitHub Pages deployment
@@ -99,12 +99,13 @@ The Phase A engine lives in [`src/rro/`](src/rro/) (Python 3.11+), implementing 
 [Phase A handbook](docs/handbook/phase-a-engine.md). Implemented and tested: config, `J(r)`/`C(r)`/
 robustness, dominance, route signature, **B4 clustering** (with a synthetic golden portfolio locking
 the B4→Layer C seam), serialisation/§7 cards, the **OTP GraphQL `plan` client** (query + response
-parser, injectable transport, pinned to OTP 2.9.0), and **feed registry + GTFS/OSM ingestion**
-(fetch/validate/version-pin, injectable downloader). The remaining IO pieces (OTP graph build, hub
-discovery, deepening) are typed stubs.
+parser, injectable transport, pinned to OTP 2.9.0), **feed registry + GTFS/OSM ingestion**
+(fetch/validate/version-pin, injectable downloader), and the **OTP→domain bridge** (B1 decomposition
+to layered legs, B2 hub-arrival parsing). The remaining IO pieces (OTP graph build, isochrone hub
+enumeration, the deepening controller) are typed stubs.
 
 ```bash
-python -m pytest          # 119 tests (pyproject sets pythonpath=src)
+python -m pytest          # 131 tests (pyproject sets pythonpath=src)
 PYTHONPATH=src python -m rro.cli plan --config corridor.yml --depart 2026-06-08T07:30:00+02:00
 ```
 

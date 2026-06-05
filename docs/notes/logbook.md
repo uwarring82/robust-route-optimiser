@@ -419,6 +419,33 @@ domain model (`Leg` with B1 layer tags, `HubArrival` for B2), the bridge to the 
 
 ---
 
+## 2026-06-05 — IO bridge: B1 decomposition + B2 hub-arrival parsing
+
+One stale handbook sentence patched first: §8.4 no longer claims date-aware service-calendar coverage
+(the validator only checks `service_id`s are defined); date-coverage marked deferred.
+
+Then the OTP→domain bridge — `routing/decompose.py` + `routing/hubs.py`, built against constructed
+`OTPItinerary`/`OTPLeg` objects (and one full path through the real `parse_itinerary`):
+
+- **`decompose.py`** — `decompose(itinerary, tz=None)` tags each leg with its B1 layer (backbone =
+  the first→last `RAIL` span; before = `first_mile`, after = `last_mile`; ends-at-rail-hub ⇒ no
+  last-mile; no-rail falls back to the transit span) and emits domain `Leg`s with per-leg slack and
+  optional tz localisation. `feeder_hub(legs)` = first backbone board stop.
+- **`hubs.py`** — `hub_arrival(itinerary)` builds a `HubArrival` (hub = final stop, transfers =
+  transit legs − 1, first-mile mode, offset-aware arrival); `hub_arrivals(itineraries, t_first)`
+  filters by reachability and feeds the existing `dominance.pareto_frontier`. The exhaustive OTP
+  isochrone enumeration stays a documented stub (distinct OTP API).
+
+**Verification:** `python -m pytest` → **131 passed** (+12): layer tagging variants, tz localisation,
+real-parser path; hub-arrival fields, transfer counting, T_first filtering, and dominance over parsed
+hub arrivals.
+
+**Next (IO):** `routing/deepening.py` — wire Depth 0/1/2 to the OTP client + the dedup pool
+(`route_signature` already exists), and `graph/build.py`. Then the pipeline runs end-to-end and the
+synthetic golden is replaced by one over the `data/sample/` fixture.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.

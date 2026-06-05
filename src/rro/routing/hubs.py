@@ -1,9 +1,11 @@
-"""B2 first-mile hub enumeration (handbook §4.2, Coastline §B2).
+"""B2 first-mile hub discovery (handbook §4.2, Coastline §B2).
 
-Enumerates **all** stops reachable within ``T_first`` (default 45 min) of the
-origin across walk/bus/taxi — an exhaustive reachability sweep, not nearest-k.
-Static evaluation only in Phase A (no temporal decoupling, no live traffic). The
-taxi first-mile is an experimental, replaceable module (handbook §6).
+Turns first-mile OTP itineraries (origin → feeder hub) into :class:`HubArrival`
+candidates for the static dominance filter (``routing/dominance.py``). Static
+evaluation only in Phase A — no temporal decoupling, no live traffic (§4.2). The
+exhaustive isochrone sweep (``enumerate_hubs``) uses OTP's one-to-many API and is
+deferred; the parsing of reachable arrivals into :class:`HubArrival`s is here and
+testable against recorded responses.
 """
 
 from __future__ import annotations
@@ -11,7 +13,47 @@ from __future__ import annotations
 from rro.models import HubArrival
 
 
+def hub_arrival(itinerary, *, cost_eur: float = 0.0) -> HubArrival:
+    """Build a :class:`HubArrival` from a first-mile itinerary (origin → hub, §4.2).
+
+    The hub is the itinerary's final stop; ``transfers`` counts first-mile vehicle
+    changes (transit legs − 1); ``first_mile_mode`` is the mode of the leg arriving
+    at the hub. ``arrival_time`` is the itinerary's (offset-aware) arrival.
+    """
+    legs = itinerary.legs
+    if not legs:
+        raise ValueError("cannot derive a hub arrival from an empty itinerary")
+    transit = [l for l in legs if (l.mode or "").upper() != "WALK"]
+    last = legs[-1]
+    return HubArrival(
+        hub_id=last.to_stop_id or last.to_name,
+        arrival_time=itinerary.end.isoformat(),
+        cost_eur=cost_eur,
+        transfers=max(len(transit) - 1, 0),
+        first_mile_mode=(transit[-1].mode if transit else "WALK").lower(),
+    )
+
+
+def hub_arrivals(itineraries, t_first_minutes: int, *, costs: dict = None) -> list:
+    """Hub arrivals for itineraries reachable within ``T_first`` (§4.2).
+
+    ``costs`` optionally maps itinerary index → first-mile fare (EUR). The result
+    is the over-generated set; the static dominance filter prunes it (§4.3).
+    """
+    costs = costs or {}
+    out = []
+    for i, it in enumerate(itineraries):
+        minutes = (it.end - it.start).total_seconds() / 60
+        if minutes <= t_first_minutes:
+            out.append(hub_arrival(it, cost_eur=costs.get(i, 0.0)))
+    return out
+
+
 def enumerate_hubs(origin: str, t_first_minutes: int, client, *,
                    include_taxi: bool = False) -> list:
-    """Return candidate :class:`HubArrival`s within the ``T_first`` window (§4.2)."""
-    raise NotImplementedError("Phase A scaffold: hub enumeration pending OTP isochrones")
+    """Exhaustively enumerate feeder hubs within ``T_first`` via OTP isochrone (§4.2).
+
+    Phase A scaffold: this drives OTP's one-to-many / isochrone API
+    (``otp_client.isochrone``, still a stub) and feeds :func:`hub_arrivals`.
+    """
+    raise NotImplementedError("Phase A scaffold: OTP isochrone-based hub enumeration pending")
