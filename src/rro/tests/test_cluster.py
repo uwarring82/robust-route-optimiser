@@ -192,6 +192,25 @@ def test_same_signature_keeps_taxi_when_strictly_faster():
         assert wupp.card.risks == ["Taxi-Verfügbarkeit unsicher"]
 
 
+@pytest.mark.parametrize("cheap_first", [True, False])
+def test_same_signature_collapse_total_tiebreak_on_price(cheap_first):
+    # Identical backbone, time, risk and legs but different price: the survivor
+    # must still be order-independent (total tie-break).
+    def variant(price):
+        legs = [
+            Leg("first_mile", "bus", "Haßlinghausen", "Wuppertal Hbf", _t("07:10"), _t("07:40"), "VER 1", 10),
+            Leg("backbone", "rail", "Wuppertal Hbf", "Freiburg (Breisgau) Hbf", _t("07:51"), _t("11:30"), "ICE 9", None),
+        ]
+        score = Score(J=259.0, Q08_T_eff_min=259.0, E_T_eff_min=259.0, creativity=0.1, transfers=1,
+                      min_transfer_slack_min=10, fragile_legs=0, backbone_km=400.0, reference_km=360.0)
+        return ScoredCandidate(legs=legs, score=score, price_eur=price)
+
+    cheap, dear = variant(10.0), variant(20.0)
+    cands = [cheap, dear, _creative()] if cheap_first else [dear, cheap, _creative()]
+    wupp = next(s for s in cluster(cands) if s.legs[0].to == "Wuppertal Hbf")
+    assert wupp.card.price_eur == 10.0
+
+
 def test_cluster_order_constants_consistent():
     from rro.models import CLUSTER_LABELS, CLUSTERS
     from rro.portfolio.cluster import CLUSTER_PRECEDENCE

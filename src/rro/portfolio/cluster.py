@@ -66,18 +66,30 @@ def _cluster_sort_key(name: str):
     return key
 
 
+def _n(x):
+    """Order ``None`` last among optional numbers (avoids None/number comparison)."""
+    return (x is None, 0.0 if x is None else x)
+
+
 def _collapse_key(c: ScoredCandidate):
-    """Deterministic preference among same-backbone candidates (handbook §4.3, §5.3).
+    """Total, order-independent preference among same-backbone candidates (§4.3, §5.3).
 
     Smaller wins: (1) faster ``E_T_eff_min``; then (2) lower first-mile risk —
     a non-taxi feeder beats a taxi one, so a taxi feeder survives only when it is
-    *strictly faster* (§4.3); then (3) a stable leg key, so the choice never
-    depends on input order.
+    *strictly faster* (§4.3); then a **total** tie-break over every emitted field —
+    the full leg structure, the score, price, and warning — so the survivor never
+    depends on input order, even for otherwise-identical candidates.
     """
     first_mile_modes = {l.mode for l in c.legs if l.layer == "first_mile"}
     risk = 1 if (c.taxi_warning or "taxi" in first_mile_modes) else 0
-    leg_key = tuple((l.layer, l.mode, l.from_, l.to, l.dep, l.arr, l.line) for l in c.legs)
-    return (c.score.E_T_eff_min, risk, leg_key)
+    leg_key = tuple(
+        (l.layer, l.mode, l.from_, l.to, l.dep, l.arr, l.line or "", _n(l.transfer_slack_min))
+        for l in c.legs
+    )
+    s = c.score
+    score_key = (s.J, s.Q08_T_eff_min, s.E_T_eff_min, s.creativity, s.transfers,
+                 _n(s.min_transfer_slack_min), s.fragile_legs, s.backbone_km, s.reference_km)
+    return (s.E_T_eff_min, risk, leg_key, score_key, _n(c.price_eur), c.taxi_warning or "")
 
 
 def _distinct(candidates: list) -> list:
