@@ -211,6 +211,32 @@ fill the routing→scoring→clustering pipeline and produce the first golden-ro
 
 ---
 
+## 2026-06-05 — Scaffold review response (contract edges)
+
+Review of the scaffold flagged four contract edges; all fixed before building the pipeline:
+
+- **CLI traceback (major).** A valid `rro plan` raised `NotImplementedError` (exit 1 via uncaught
+  traceback, outside the documented codes). Now returns a documented diagnostic: added
+  `EXIT_NOTIMPL = 1` to `cli.py` and to handbook §8.1, printed cleanly to stderr.
+- **Config type validation (major).** `config.py` rejected unknown keys but not wrong types.
+  Added scalar type/range/ISO checks (`origin` non-empty str, `t_first_minutes`/`depths` positive
+  int, `alpha_c ≥ 0`, `quantile ∈ (0,1]`, `accessibility_required` bool, ISO-8601 `departure_time`,
+  feed field types). `--depart` overrides are ISO-validated too.
+- **Dominance string compare (major).** `routing/dominance.py` compared `arrival_time` strings
+  lexicographically — wrong across UTC offsets and midnight. Now parses ISO 8601 to offset-aware
+  `datetime` before comparison; `HubArrival.arrival_time` documented as ISO. Added regression tests
+  (cross-offset + cross-midnight) that fail under string compare.
+- **`creativity_from_km` bound (minor).** Claimed `[0,1]` but didn't enforce it. Now raises
+  `ValueError` on negative inputs or `reference_km > backbone_km` (tolerating FP overshoot), so the
+  result is always in `[0,1]` (handbook §6.3).
+
+**Verification:** `python -m pytest` → **51 passed** (was 28; +23). New: config type/range/ISO
+cases, CLI exit-code contract (0/1/2 paths), absolute-time dominance, creativity bounds. Manually
+reproduced the reviewer's bad-type configs (`origin: 42`, `departure_time: tomorrow`, feed
+`url: 123`) — all now rejected with exit 2; a valid plan exits 1 with no traceback.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.

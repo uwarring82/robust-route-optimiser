@@ -4,8 +4,9 @@
 B1→B4 pipeline. The pipeline itself is not yet wired in this scaffold; config
 loading, flag precedence, and exit codes are.
 
-Exit codes (§8.1): 0 = portfolio emitted; 2 = config/validation failure;
-3 = OTP graph/query error; 4 = portfolio underfull (< 2 strategies).
+Exit codes (§8.1): 0 = portfolio emitted; 1 = internal error / not-yet-implemented
+pipeline (scaffold); 2 = config/validation failure; 3 = OTP graph/query error;
+4 = portfolio underfull (< 2 strategies).
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from rro import COASTLINE_VERSION, ENGINE_VERSION
 from rro.config import ConfigError, load_config, require_departure_time
 
 EXIT_OK = 0
+EXIT_NOTIMPL = 1
 EXIT_VALIDATION = 2
 EXIT_OTP = 3
 EXIT_UNDERFULL = 4
@@ -77,13 +79,17 @@ def cmd_plan(args) -> int:
         print(f"usage error: {e}", file=sys.stderr)
         return EXIT_VALIDATION
 
-    # Phase A pipeline (B1→B4) is not yet wired in this scaffold.
-    raise NotImplementedError(
-        "Phase A pipeline not yet implemented. Wiring (handbook §2.3): "
-        "data.ingest → graph.build → routing(decompose/hubs/dominance/deepening) "
-        "→ scoring(objective/creativity/robustness) → portfolio(cluster/output/card). "
-        f"(config loaded for {cfg.origin!r} → {cfg.destination!r} @ {departure})"
+    # Phase A pipeline (B1→B4) is not yet wired in this scaffold. Return a
+    # documented diagnostic (exit 1) rather than crashing with a traceback.
+    print(
+        "rro: Phase A pipeline not yet implemented (scaffold). "
+        f"Config resolved for {cfg.origin!r} → {cfg.destination!r} @ {departure}. "
+        "Wiring (handbook §2.3): data.ingest → graph.build → "
+        "routing(decompose/hubs/dominance/deepening) → "
+        "scoring(objective/creativity/robustness) → portfolio(cluster/output/card).",
+        file=sys.stderr,
     )
+    return EXIT_NOTIMPL
 
 
 def main(argv: Optional[list] = None) -> int:

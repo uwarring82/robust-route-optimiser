@@ -80,3 +80,56 @@ def test_require_departure_time_missing_errors(valid_config_dict):
     assert cfg.departure_time is None  # optional at load time
     with pytest.raises(ConfigError, match="departure_time required"):
         require_departure_time(cfg)
+
+
+@pytest.mark.parametrize(
+    "key,bad",
+    [
+        ("origin", 42),
+        ("origin", ""),
+        ("destination", None),
+        ("t_first_minutes", "45"),
+        ("t_first_minutes", 0),
+        ("depths", 1.5),
+        ("alpha_c", "x"),
+        ("alpha_c", True),  # bool is not a number
+        ("accessibility_required", "yes"),
+    ],
+)
+def test_wrong_scalar_types_rejected(valid_config_dict, key, bad):
+    valid_config_dict[key] = bad
+    with pytest.raises(ConfigError):
+        parse_config(valid_config_dict)
+
+
+def test_quantile_out_of_range_rejected(valid_config_dict):
+    valid_config_dict["quantile"] = 1.5
+    with pytest.raises(ConfigError, match="quantile"):
+        parse_config(valid_config_dict)
+    valid_config_dict["quantile"] = 0
+    with pytest.raises(ConfigError, match="quantile"):
+        parse_config(valid_config_dict)
+
+
+def test_bad_epsilon_value_type_rejected(valid_config_dict):
+    valid_config_dict["epsilon"] = {"time_min": "three"}
+    with pytest.raises(ConfigError, match="epsilon.time_min"):
+        parse_config(valid_config_dict)
+
+
+def test_bad_departure_format_rejected(valid_config_dict):
+    valid_config_dict["departure_time"] = "tomorrow"
+    with pytest.raises(ConfigError, match="ISO 8601"):
+        parse_config(valid_config_dict)
+
+
+def test_bad_feed_url_type_rejected(valid_config_dict):
+    valid_config_dict["feeds"][0]["url"] = 123
+    with pytest.raises(ConfigError, match="url"):
+        parse_config(valid_config_dict)
+
+
+def test_require_departure_time_validates_override(valid_config_dict):
+    cfg = parse_config(valid_config_dict)
+    with pytest.raises(ConfigError, match="ISO 8601"):
+        require_departure_time(cfg, "tomorrow")

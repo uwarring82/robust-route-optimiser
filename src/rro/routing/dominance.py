@@ -5,24 +5,35 @@ expensive, and no more transfers, with at least one strict inequality. Dominance
 is over ``(arrival_time, cost_eur, transfers)`` only; ``first_mile_mode`` is NOT a
 dominance dimension, so two arrivals equal on all three but differing in mode are
 mutually non-dominating and both retained.
+
+Arrival times are compared as absolute, offset-aware datetimes (``arrival_time``
+is ISO 8601, handbook §2.8) — never as raw strings — so differing UTC offsets and
+midnight crossings order correctly.
 """
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Iterable
 
 from rro.models import HubArrival
 
 
+def _arrival(a: HubArrival) -> datetime:
+    """Parse an arrival into an absolute, offset-aware datetime for comparison."""
+    return datetime.fromisoformat(a.arrival_time)
+
+
 def dominates(b: HubArrival, a: HubArrival) -> bool:
     """``True`` iff ``b ≻ a`` (b dominates a) over the three static dimensions (§4.3)."""
+    b_arr, a_arr = _arrival(b), _arrival(a)
     no_worse = (
-        b.arrival_time <= a.arrival_time
+        b_arr <= a_arr
         and b.cost_eur <= a.cost_eur
         and b.transfers <= a.transfers
     )
     strictly_better = (
-        b.arrival_time < a.arrival_time
+        b_arr < a_arr
         or b.cost_eur < a.cost_eur
         or b.transfers < a.transfers
     )

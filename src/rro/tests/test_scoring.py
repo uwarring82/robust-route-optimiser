@@ -29,6 +29,23 @@ def test_creativity_from_km():
     assert creativity_from_km(0.0, 0.0) == 0.0
 
 
+def test_creativity_stays_in_unit_interval():
+    # Every valid result is in [0, 1] (handbook §6.3 bound).
+    for backbone, ref in [(500.0, 0.0), (500.0, 250.0), (500.0, 500.0)]:
+        c = creativity_from_km(backbone, ref)
+        assert 0.0 <= c <= 1.0
+
+
+def test_creativity_rejects_invalid_inputs():
+    import pytest
+    with pytest.raises(ValueError):
+        creativity_from_km(100.0, 200.0)   # reference_km > backbone_km
+    with pytest.raises(ValueError):
+        creativity_from_km(100.0, -5.0)    # negative reference_km
+    with pytest.raises(ValueError):
+        creativity_from_km(-1.0, 0.0)      # negative backbone_km
+
+
 def test_robustness_key_orders_by_structure():
     # Fewer transfers wins first.
     a = robustness_key(1, 18, 0)

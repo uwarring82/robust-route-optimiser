@@ -112,7 +112,7 @@ class HubArrival:
     """
 
     hub_id: str
-    arrival_time: str  # comparable scheduled time (ISO 8601 or HH:MM)
+    arrival_time: str  # ISO 8601 datetime with offset (handbook §2.8) — absolute, comparable
     cost_eur: float
     transfers: int
     first_mile_mode: str

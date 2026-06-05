@@ -1,14 +1,16 @@
 """Corridor + user configuration loader (handbook §2.6, §8.3).
 
-Loads a single YAML document, applies the Phase-A defaults, and **rejects unknown
-keys**. ``departure_time`` is optional at load time: it may be set in config or
-supplied per-run (``--depart`` / ``plan(depart=...)``); :func:`require_departure_time`
-enforces that exactly one source provides it (§8.3).
+Loads a single YAML document, applies the Phase-A defaults, and validates it
+strictly: unknown keys are rejected **and** every scalar is type/range checked
+(``departure_time`` must be valid ISO 8601). ``departure_time`` is optional at
+load time — it may come from config or be supplied per-run (``--depart`` /
+``plan(depart=...)``); :func:`require_departure_time` enforces presence (§8.3).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -70,11 +72,59 @@ class Config:
     accessibility_required: bool = False
 
 
+# --- scalar validators -----------------------------------------------------
+
 def _reject_unknown(d: dict, allowed: set, where: str) -> None:
     extra = set(d) - allowed
     if extra:
         raise ConfigError(f"unknown key(s) in {where}: {sorted(extra)}")
 
+
+def _check_str(value, key: str, *, allow_none: bool = False):
+    if value is None and allow_none:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ConfigError(f"{key} must be a non-empty string")
+    return value
+
+
+def _check_number(value, key: str, *, minimum=None, maximum=None, exclusive_min=False):
+    # bool is a subclass of int — reject it where a number is expected.
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ConfigError(f"{key} must be a number")
+    if minimum is not None and (value <= minimum if exclusive_min else value < minimum):
+        raise ConfigError(f"{key} must be {'>' if exclusive_min else '>='} {minimum}")
+    if maximum is not None and value > maximum:
+        raise ConfigError(f"{key} must be <= {maximum}")
+    return value
+
+
+def _check_int(value, key: str, *, minimum=None):
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ConfigError(f"{key} must be an integer")
+    if minimum is not None and value < minimum:
+        raise ConfigError(f"{key} must be >= {minimum}")
+    return value
+
+
+def _check_bool(value, key: str):
+    if not isinstance(value, bool):
+        raise ConfigError(f"{key} must be a boolean")
+    return value
+
+
+def validate_departure(value, key: str = "departure_time") -> str:
+    """Validate an ISO 8601 departure timestamp (handbook §2.6, §8.3)."""
+    if not isinstance(value, str):
+        raise ConfigError(f"{key} must be an ISO 8601 string")
+    try:
+        datetime.fromisoformat(value)
+    except ValueError:
+        raise ConfigError(f"{key} must be a valid ISO 8601 datetime, got {value!r}")
+    return value
+
+
+# --- parsing ---------------------------------------------------------------
 
 def load_config(path) -> Config:
     """Load and validate a corridor YAML config file."""
@@ -92,27 +142,36 @@ def parse_config(raw: dict) -> Config:
         if req not in raw:
             raise ConfigError(f"missing required key: {req}")
 
+    departure_time = raw.get("departure_time")
+    if departure_time is not None:
+        validate_departure(departure_time)
+
     eps_raw = raw.get("epsilon", {}) or {}
     if not isinstance(eps_raw, dict):
         raise ConfigError("epsilon must be a map of {time_min, creativity}")
     _reject_unknown(eps_raw, ALLOWED_EPSILON_KEYS, "epsilon")
-    epsilon = Epsilon(**eps_raw)
+    epsilon = Epsilon(
+        time_min=_check_number(eps_raw.get("time_min", 3.0), "epsilon.time_min", minimum=0),
+        creativity=_check_number(eps_raw.get("creativity", 0.05), "epsilon.creativity", minimum=0),
+    )
 
-    feeds = _parse_feeds(raw["feeds"])
+    bahncard = raw.get("bahncard")
+    if bahncard is not None:
+        _check_str(bahncard, "bahncard")
 
     return Config(
-        origin=raw["origin"],
-        destination=raw["destination"],
-        feeds=feeds,
-        departure_time=raw.get("departure_time"),
-        t_first_minutes=raw.get("t_first_minutes", 45),
-        depths=raw.get("depths", 3),
+        origin=_check_str(raw["origin"], "origin"),
+        destination=_check_str(raw["destination"], "destination"),
+        feeds=_parse_feeds(raw["feeds"]),
+        departure_time=departure_time,
+        t_first_minutes=_check_int(raw.get("t_first_minutes", 45), "t_first_minutes", minimum=1),
+        depths=_check_int(raw.get("depths", 3), "depths", minimum=1),
         epsilon=epsilon,
-        alpha_c=raw.get("alpha_c", 0.7),
-        quantile=raw.get("quantile", 0.8),
-        fragile_headway_min=raw.get("fragile_headway_min", 30.0),
-        bahncard=raw.get("bahncard"),
-        accessibility_required=raw.get("accessibility_required", False),
+        alpha_c=_check_number(raw.get("alpha_c", 0.7), "alpha_c", minimum=0),
+        quantile=_check_number(raw.get("quantile", 0.8), "quantile", minimum=0, maximum=1, exclusive_min=True),
+        fragile_headway_min=_check_number(raw.get("fragile_headway_min", 30.0), "fragile_headway_min", minimum=0, exclusive_min=True),
+        bahncard=bahncard,
+        accessibility_required=_check_bool(raw.get("accessibility_required", False), "accessibility_required"),
     )
 
 
@@ -127,10 +186,17 @@ def _parse_feeds(raw_feeds) -> list:
         for req in ("id", "kind", "url"):
             if req not in f:
                 raise ConfigError(f"feeds[{i}] missing required key: {req}")
+        _check_str(f["id"], f"feeds[{i}].id")
+        _check_str(f["url"], f"feeds[{i}].url")
         if f["kind"] not in FEED_KINDS:
             raise ConfigError(
                 f"feeds[{i}] kind must be one of {sorted(FEED_KINDS)}, got {f['kind']!r}"
             )
+        for opt in ("version_pin", "sha256", "licence"):
+            if f.get(opt) is not None:
+                _check_str(f[opt], f"feeds[{i}].{opt}")
+        if f.get("bbox") is not None:
+            _check_bbox(f["bbox"], f"feeds[{i}].bbox")
         feeds.append(Feed(**f))
 
     n_gtfs = sum(1 for f in feeds if f.kind == "gtfs")
@@ -142,15 +208,22 @@ def _parse_feeds(raw_feeds) -> list:
     return feeds
 
 
+def _check_bbox(bbox, key: str) -> None:
+    if (not isinstance(bbox, list) or len(bbox) != 4
+            or any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in bbox)):
+        raise ConfigError(f"{key} must be a list of four numbers [minlon, minlat, maxlon, maxlat]")
+
+
 def require_departure_time(cfg: Config, override: Optional[str] = None) -> str:
     """Resolve ``departure_time`` from a CLI/notebook override or config (§8.3).
 
     The override (``--depart`` / ``plan(depart=...)``) wins; otherwise the config
-    value is used. Raises :class:`ConfigError` if neither provides one.
+    value is used. Validates ISO 8601 format. Raises :class:`ConfigError` if
+    neither source provides a valid timestamp.
     """
     dep = override or cfg.departure_time
     if not dep:
         raise ConfigError(
             "departure_time required via config or --depart / plan(depart=...)"
         )
-    return dep
+    return validate_departure(dep)
