@@ -64,7 +64,7 @@ The canonical documentation is published via GitHub Pages:
 |---|---|---|
 | [Coastline v0.6.0-rc1](docs/coastline/rro-coastline-v0.6.0-rc1.md) | **Freeze candidate** | Core architecture: objective function, signal taxonomy, graph model, boundaries B1–B7 |
 | [Static Demo](docs/demo/index.html) | **Live** | Interactive portfolio view, signal pipeline, corridor map |
-| Handbook: Phase A Engine | Planned | OTP integration, progressive deepening, portfolio clustering |
+| [Handbook: Phase A — Static Engine](docs/handbook/phase-a-engine.md) | **Draft** | OTP 2.x integration, B1–B4 (decomposition, hub discovery, progressive deepening, clustering), deterministic scoring, JSON portfolio |
 | Handbook: Phase B State Graph | Planned | Real-time signals, G′ construction, weather overlay |
 | Handbook: Phase C Logger | Planned | GTFS-RT daemon, SQLite schema, feature engineering |
 

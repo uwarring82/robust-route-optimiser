@@ -33,7 +33,7 @@ Handbooks define *how the system is built*. They are subordinate to the coastlin
 
 | Handbook | Status |
 |---|---|
-| [Phase A — Static Engine](handbook/phase-a-engine) | Planned |
+| [Phase A — Static Engine](handbook/phase-a-engine) | **Draft** |
 | [Phase B — State Graph](handbook/phase-b-state-graph) | Planned |
 | [Phase C — Logger](handbook/phase-c-logger) | Planned |
 
