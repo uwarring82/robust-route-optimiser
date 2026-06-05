@@ -88,6 +88,21 @@ class Strategy:
 
 
 @dataclass
+class ScoredCandidate:
+    """A routed itinerary after scoring, before B4 clustering (handbook §6 → §7).
+
+    Carries the leg structure and the full :class:`Score`; ``price_eur`` and
+    ``taxi_warning`` feed the §7 card. B4 selects cluster representatives from a
+    list of these.
+    """
+
+    legs: list  # list[Leg]
+    score: Score
+    price_eur: Optional[float] = None
+    taxi_warning: Optional[str] = None
+
+
+@dataclass
 class ReferenceCorridor:
     """One frozen reference corridor in the set R (handbook §6.3, Coastline §0.3)."""
 

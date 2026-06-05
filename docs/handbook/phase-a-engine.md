@@ -942,7 +942,7 @@ In deterministic mode several clusters frequently select the **same physical rou
 
 1. Score every surviving route against all four cluster keys.
 2. For each route, determine the cluster in which it ranks **strongest and distinctly** — i.e. the cluster where it is the unique top route. A route is assigned to **exactly one** cluster: its strongest distinct claim.
-3. If two clusters would map to the same route, assign that route to the cluster where its margin over the runner-up is largest; the other cluster then takes its **next-best** route, provided that route is not already assigned.
+3. If two clusters nominate the same route, the **higher-precedence** cluster keeps it (precedence below) and the other re-nominates its **next-best** unassigned route. This repeats until every cluster has a distinct route or no route remains for it.
 4. Drop a cluster entirely when no unassigned route can represent it. This **reduces the number of strategies** (e.g. to 3, or to the floor of 2) but **never below 2** (Coastline §B4). If fewer than 2 distinct routes exist in total, the portfolio is **underfull**: no valid portfolio can be emitted, so the run fails with a diagnostic (CLI exit `4`, §8.1) rather than returning a single-strategy result. Coastline §B4's *min 2* is a hard floor, not a target.
 
 Cluster precedence when resolving a tie for the same route is fixed and deterministic: `fastest` → `robust` → `low_transfer` → `creative`. The `creative` strategy is the one most often *kept distinct*, because max C(r) (Coastline §0.3) typically selects an off-backbone route that no time/transfer key would surface.

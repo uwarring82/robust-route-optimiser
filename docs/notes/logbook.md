@@ -276,6 +276,33 @@ YAML `.nan` all exit 2.
 
 ---
 
+## 2026-06-05 — Track 1: B4 clustering + synthetic golden portfolio
+
+Implemented `portfolio/cluster.py` (B4) against hand-built `ScoredCandidate`s — locking the
+B4→Layer C seam before any OTP wiring.
+
+- **Algorithm.** Found that naive precedence-greedy mis-assigns: with 3 routes, `low_transfer`
+  would grab the creative route before `creative`. Implemented **iterative claim resolution**
+  instead — each cluster nominates its best unassigned route; a contested route goes to the
+  highest-precedence nominator (`fastest → robust → low_transfer → creative`); losers re-nominate;
+  clusters with no distinct route are dropped (min 2, max 4); <2 distinct → `UnderfullPortfolioError`
+  (exit 4). This reproduces the §7.2 outcome (fastest/robust/creative, low_transfer dropped).
+- **Handbook §7.1 step 3** realigned from the ill-defined "largest margin" to the implemented
+  precedence rule (the "fixed precedence" line was already authoritative); added `ScoredCandidate`
+  to `models.py`.
+- **Synthetic golden.** `src/rro/tests/golden/expected_portfolio.json` (202 lines) built from the
+  real clustering + serialisation, with a fixed `generated_at`. `test_golden_portfolio_matches`
+  regenerates and diffs it — the regression guard for the B4→Layer C output.
+
+**Verification:** `python -m pytest` → **77 passed** (+8). New: underfull (incl. signature
+collapse), 2→2 precedence order, 3→fastest/robust/creative, direct-contest precedence,
+4-strategy cap, golden match + card invariants.
+
+**Next:** the IO track — OTP 2.x graph build, GTFS/OSM ingest, `otp_client` GraphQL — feeding
+real candidates into this now-stable B4→Layer C output.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.

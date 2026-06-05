@@ -45,7 +45,7 @@ robust-route-optimiser/
 │   ├── data/ graph/ routing/      # ingest, OTP build, B1–B3
 │   ├── scoring/ portfolio/        # J(r)/C(r)/robustness, B4, JSON, §7 cards
 │   ├── cli.py                     # `rro plan` entry point
-│   └── tests/                     # pytest suite (28 tests) + golden/ fixtures
+│   └── tests/                     # pytest suite (77 tests) + golden/ portfolio
 ├── data/sample/                   # Small example GTFS/OSM fixture (never raw bulk)
 ├── pyproject.toml                 # Packaging, `rro` CLI, pytest config
 ├── .github/workflows/pages.yml    # GitHub Pages deployment
@@ -97,12 +97,12 @@ RRO is part of the [Open-Science Harbour](https://uwarring82.github.io/me). It f
 
 The Phase A engine lives in [`src/rro/`](src/rro/) (Python 3.11+), implementing the
 [Phase A handbook](docs/handbook/phase-a-engine.md). The fully-specified pure functions
-(config, `J(r)`/`C(r)`/robustness, dominance, route signature, serialisation, §7 cards) are
-implemented and tested; the OTP/IO pieces (ingest, graph build, hub discovery, deepening) are
-typed stubs.
+(config, `J(r)`/`C(r)`/robustness, dominance, route signature, **B4 clustering**, serialisation,
+§7 cards) are implemented and tested — including a synthetic golden portfolio that locks the
+B4→Layer C seam; the OTP/IO pieces (ingest, graph build, hub discovery, deepening) are typed stubs.
 
 ```bash
-python -m pytest          # 28 tests (pyproject sets pythonpath=src)
+python -m pytest          # 77 tests (pyproject sets pythonpath=src)
 PYTHONPATH=src python -m rro.cli plan --config corridor.yml --depart 2026-06-08T07:30:00+02:00
 ```
 
