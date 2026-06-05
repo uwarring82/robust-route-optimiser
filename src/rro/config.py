@@ -114,13 +114,19 @@ def _check_bool(value, key: str):
 
 
 def validate_departure(value, key: str = "departure_time") -> str:
-    """Validate an ISO 8601 departure timestamp (handbook §2.6, §8.3)."""
+    """Validate an offset-aware ISO 8601 departure timestamp (handbook §2.6, §8.3).
+
+    The UTC offset is required: naive datetimes are ambiguous and would mix badly
+    with the offset-aware comparisons in :mod:`rro.routing.dominance`.
+    """
     if not isinstance(value, str):
         raise ConfigError(f"{key} must be an ISO 8601 string")
     try:
-        datetime.fromisoformat(value)
+        dt = datetime.fromisoformat(value)
     except ValueError:
         raise ConfigError(f"{key} must be a valid ISO 8601 datetime, got {value!r}")
+    if dt.tzinfo is None:
+        raise ConfigError(f"{key} must include a UTC offset (e.g. +02:00), got {value!r}")
     return value
 
 
@@ -212,6 +218,27 @@ def _check_bbox(bbox, key: str) -> None:
     if (not isinstance(bbox, list) or len(bbox) != 4
             or any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in bbox)):
         raise ConfigError(f"{key} must be a list of four numbers [minlon, minlat, maxlon, maxlat]")
+
+
+def validate_config(cfg: Config) -> Config:
+    """Re-validate a Config's scalar ranges after construction (handbook §2.6).
+
+    :func:`parse_config` validates the raw YAML; this guards values mutated after
+    load — e.g. by CLI ``--alpha-c`` / ``--epsilon`` / ``--quantile`` overrides,
+    which would otherwise bypass the load-time checks.
+    """
+    _check_str(cfg.origin, "origin")
+    _check_str(cfg.destination, "destination")
+    _check_int(cfg.t_first_minutes, "t_first_minutes", minimum=1)
+    _check_int(cfg.depths, "depths", minimum=1)
+    _check_number(cfg.epsilon.time_min, "epsilon.time_min", minimum=0)
+    _check_number(cfg.epsilon.creativity, "epsilon.creativity", minimum=0)
+    _check_number(cfg.alpha_c, "alpha_c", minimum=0)
+    _check_number(cfg.quantile, "quantile", minimum=0, maximum=1, exclusive_min=True)
+    _check_number(cfg.fragile_headway_min, "fragile_headway_min", minimum=0, exclusive_min=True)
+    if cfg.departure_time is not None:
+        validate_departure(cfg.departure_time)
+    return cfg
 
 
 def require_departure_time(cfg: Config, override: Optional[str] = None) -> str:

@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from rro.config import ConfigError, parse_config, require_departure_time
+from rro.config import (
+    ConfigError,
+    parse_config,
+    require_departure_time,
+    validate_config,
+)
 
 
 def test_defaults_applied(valid_config_dict):
@@ -133,3 +138,32 @@ def test_require_departure_time_validates_override(valid_config_dict):
     cfg = parse_config(valid_config_dict)
     with pytest.raises(ConfigError, match="ISO 8601"):
         require_departure_time(cfg, "tomorrow")
+
+
+def test_naive_departure_rejected(valid_config_dict):
+    # ISO-valid but no UTC offset → rejected (handbook §2.8).
+    valid_config_dict["departure_time"] = "2026-06-08T07:30:00"
+    with pytest.raises(ConfigError, match="UTC offset"):
+        parse_config(valid_config_dict)
+
+
+def test_naive_depart_override_rejected(valid_config_dict):
+    cfg = parse_config(valid_config_dict)
+    with pytest.raises(ConfigError, match="UTC offset"):
+        require_departure_time(cfg, "2026-06-08T07:30:00")
+
+
+@pytest.mark.parametrize("field,bad", [("alpha_c", -1.0), ("quantile", 2.0), ("quantile", 0.0)])
+def test_validate_config_catches_overridden_ranges(valid_config_dict, field, bad):
+    # Simulates CLI overrides mutating a loaded Config past its valid range.
+    cfg = parse_config(valid_config_dict)
+    setattr(cfg, field, bad)
+    with pytest.raises(ConfigError, match=field):
+        validate_config(cfg)
+
+
+def test_validate_config_catches_overridden_epsilon(valid_config_dict):
+    cfg = parse_config(valid_config_dict)
+    cfg.epsilon.time_min = -5
+    with pytest.raises(ConfigError, match="epsilon.time_min"):
+        validate_config(cfg)

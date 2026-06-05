@@ -20,8 +20,17 @@ from rro.models import HubArrival
 
 
 def _arrival(a: HubArrival) -> datetime:
-    """Parse an arrival into an absolute, offset-aware datetime for comparison."""
-    return datetime.fromisoformat(a.arrival_time)
+    """Parse an arrival into an absolute, offset-aware datetime for comparison.
+
+    Requires a UTC offset (handbook §2.8): a naive datetime is ambiguous and
+    would raise ``TypeError`` when compared against an offset-aware one.
+    """
+    dt = datetime.fromisoformat(a.arrival_time)
+    if dt.tzinfo is None:
+        raise ValueError(
+            f"HubArrival.arrival_time must include a UTC offset, got {a.arrival_time!r}"
+        )
+    return dt
 
 
 def dominates(b: HubArrival, a: HubArrival) -> bool:

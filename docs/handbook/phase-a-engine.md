@@ -1359,7 +1359,7 @@ feeds:                       # corridor feed registry (data/feeds.py)
     sha256: "<digest>"
 ```
 
-The `epsilon` map carries both contract defaults explicitly: `epsilon.time_min` (3 min) and `epsilon.creativity` (0.05), each independently calibration-adjustable (Coastline §6). The C(r) threshold is overridable via the `epsilon.creativity` key (or the `--epsilon` CLI override accepting either component). `quantile` is carried through to the JSON `parameters` block for provenance even though it has no effect under the degenerate distribution; `parameters.epsilon` in the emitted JSON serialises the `time_min` component. `departure_time` may be set here for reproducible runs or supplied per-call via `--depart` (CLI) / `plan(depart=…)` (Jupyter), which override the config value; `config.py` accepts its absence and `plan()` / the CLI raises a usage error if neither config nor the call provides it.
+The `epsilon` map carries both contract defaults explicitly: `epsilon.time_min` (3 min) and `epsilon.creativity` (0.05), each independently calibration-adjustable (Coastline §6). The `--epsilon` CLI flag overrides `epsilon.time_min`; the C(r) threshold (`epsilon.creativity`) is overridable via config only. `quantile` is carried through to the JSON `parameters` block for provenance even though it has no effect under the degenerate distribution; `parameters.epsilon` in the emitted JSON serialises the `time_min` component. `departure_time` may be set here for reproducible runs or supplied per-call via `--depart` (CLI) / `plan(depart=…)` (Jupyter), which override the config value; `config.py` accepts its absence and `plan()` / the CLI raises a usage error if neither config nor the call provides it.
 
 ### 8.4  Testing
 

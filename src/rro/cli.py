@@ -16,7 +16,12 @@ import sys
 from typing import Optional
 
 from rro import COASTLINE_VERSION, ENGINE_VERSION
-from rro.config import ConfigError, load_config, require_departure_time
+from rro.config import (
+    ConfigError,
+    load_config,
+    require_departure_time,
+    validate_config,
+)
 
 EXIT_OK = 0
 EXIT_NOTIMPL = 1
@@ -72,6 +77,13 @@ def cmd_plan(args) -> int:
         return EXIT_VALIDATION
 
     _apply_overrides(cfg, args)
+
+    # CLI overrides bypass the load-time YAML validation — re-validate ranges.
+    try:
+        validate_config(cfg)
+    except ConfigError as e:
+        print(f"config error: {e}", file=sys.stderr)
+        return EXIT_VALIDATION
 
     try:
         departure = require_departure_time(cfg, args.departure_time)

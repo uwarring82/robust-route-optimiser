@@ -237,6 +237,30 @@ reproduced the reviewer's bad-type configs (`origin: 42`, `departure_time: tomor
 
 ---
 
+## 2026-06-05 — Scaffold review response (round 2: validation holes)
+
+Follow-up review found two gaps left by round 1; both closed:
+
+- **CLI overrides bypassed validation (major).** `--alpha-c -1`, `--epsilon -5`, `--quantile 2`
+  were written onto the loaded Config after `parse_config`, so they reached the pipeline (exit 1)
+  instead of failing validation. Added `validate_config(cfg)` (re-checks scalar ranges on a
+  Config object) and call it in `cmd_plan` after overrides → exit 2.
+- **Offset not enforced (major).** `validate_departure` accepted naive ISO datetimes
+  (`2026-06-08T07:30:00`). Now requires `tzinfo` (UTC offset); `dominance._arrival` likewise
+  rejects naive `HubArrival.arrival_time` with a clear error instead of a later `TypeError`.
+- **`--epsilon` wording (minor).** Handbook §8.3 claimed `--epsilon` overrides either component;
+  narrowed to: `--epsilon` overrides `epsilon.time_min`, `epsilon.creativity` is config-only —
+  matching the implemented CLI.
+
+**Verification:** `python -m pytest` → **61 passed** (+10). Reproduced the reviewer's cases:
+`--alpha-c -1` / `--epsilon -5` / `--quantile 2` and a naive `departure_time` all now exit 2.
+
+With the CLI/config boundary hardened, the next move is **track 1**: implement `portfolio/cluster.py`
+(B4) against hand-built scored candidates, exercise underfull/tie-break/collapse, and serialise the
+first synthetic portfolio — locking the B4→Layer C seam before any OTP wiring.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.

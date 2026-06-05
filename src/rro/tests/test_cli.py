@@ -5,6 +5,8 @@ Exit codes: 0 ok; 1 internal/not-implemented; 2 config/validation; 3 OTP; 4 unde
 
 from __future__ import annotations
 
+import pytest
+
 from rro.cli import EXIT_NOTIMPL, EXIT_VALIDATION, main
 
 _VALID_YAML = """
@@ -55,3 +57,14 @@ def test_depart_flag_supplies_missing_departure(tmp_path, capsys):
     rc = main(["plan", "--config", _write(tmp_path, no_dep),
                "--depart", "2026-06-08T07:30:00+02:00"])
     assert rc == EXIT_NOTIMPL
+
+
+@pytest.mark.parametrize(
+    "flag,value",
+    [("--alpha-c", "-1"), ("--quantile", "2"), ("--epsilon", "-5")],
+)
+def test_out_of_range_overrides_exit_2(tmp_path, capsys, flag, value):
+    # CLI overrides must be re-validated, not passed through to the pipeline.
+    rc = main(["plan", "--config", _write(tmp_path, _VALID_YAML), flag, value])
+    assert rc == EXIT_VALIDATION
+    assert "config error" in capsys.readouterr().err

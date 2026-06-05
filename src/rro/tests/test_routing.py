@@ -62,6 +62,14 @@ def test_dominance_across_midnight():
     assert dominates(later, earlier) is False
 
 
+def test_dominance_rejects_naive_arrival():
+    import pytest
+    naive = HubArrival("A", "2026-06-08T08:00:00", 5.0, 0, "bus")  # no offset
+    aware = HubArrival("B", "2026-06-08T08:30:00+02:00", 6.0, 1, "bus")
+    with pytest.raises(ValueError, match="UTC offset"):
+        dominates(naive, aware)
+
+
 def _leg(layer, frm, to, line, mode="rail"):
     return Leg(layer=layer, mode=mode, from_=frm, to=to, dep="x", arr="y", line=line)
 
