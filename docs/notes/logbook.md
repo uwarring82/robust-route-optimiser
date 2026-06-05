@@ -367,6 +367,32 @@ Review flagged two client majors + an open question (pin `plan` vs migrate to `p
 
 ---
 
+## 2026-06-05 — IO track items 2–3: feed registry + GTFS/OSM ingestion
+
+Two seam-polish items closed first (committed `a1f407c`): `_execute` now normalises non-list /
+non-dict GraphQL `errors`; missing/null `plan.itineraries` raises `OTPError` (empty `[]` stays a
+valid no-routes result); handbook §5.2 query sketch refreshed to match the implemented seam.
+
+Then implemented `data/feeds.py` + `data/ingest.py` (handbook §3.2/§3.3):
+
+- **`feeds.py`** — `FeedRegistry.from_feeds` splits ≥1 GTFS + exactly one OSM PBF; exposes `all()`
+  (OSM last) and `osm_bbox`.
+- **`ingest.py`** — `ingest_feed`/`ingest_feeds` with an **injectable downloader** (offline tests),
+  cache keyed by `(id, version_pin)` (idempotent — no re-download), sha256 pinning (real digests
+  verified, `<digest>` placeholders skipped), structural `validate_gtfs` (valid zip + required files
+  + service calendar; basenames so nested archives pass) and light `validate_osm` (non-empty +
+  `OSMHeader`). ERROR findings abort via `IngestError` (exit 2); `to_lockfile`/`write_lockfile` for
+  reproducibility.
+
+**Verification:** `python -m pytest` → **114 passed** (100 → +14: 3 registry, 11 ingestion incl.
+caching, sha mismatch, missing-file abort, fetch-failure normalisation, OSM header). All offline.
+
+**Next (IO):** `routing/hubs.py` + `routing/decompose.py` (B1/B2 over OTP responses), then wire
+`routing/deepening.py` (Depth 0/1/2 + dedup pool) — at which point the pipeline runs end-to-end and
+the synthetic golden is replaced by one over the `data/sample/` fixture.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.
