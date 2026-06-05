@@ -142,3 +142,42 @@ def test_parse_itinerary_directly():
     it = parse_itinerary(_RECORDED["data"]["plan"]["itineraries"][0])
     assert len(it.legs) == 2
     assert it.end > it.start
+
+
+def test_query_declares_searchwindow_as_long():
+    from rro.graph.otp_client import PLAN_QUERY
+    assert "$searchWindow: Long" in PLAN_QUERY
+
+
+def _plan(resp):
+    return _client(resp).plan((0, 0), (1, 1), "2026-06-08T07:30:00+02:00",
+                              num_itineraries=6, max_transfers=1, search_window_s=3600)
+
+
+def _wrap_itin(itin):
+    return {"data": {"plan": {"itineraries": [itin]}}}
+
+
+def test_missing_leg_mode_raises_otp_error():
+    bad = _wrap_itin({"startTime": _DEP_MS, "endTime": _DEP_MS + 1000,
+                      "legs": [{"startTime": _DEP_MS, "endTime": _DEP_MS + 1000,
+                                "from": {}, "to": {}}]})
+    with pytest.raises(OTPError, match="mode"):
+        _plan(bad)
+
+
+def test_null_legs_raises_otp_error():
+    bad = _wrap_itin({"startTime": _DEP_MS, "endTime": _DEP_MS + 1000, "legs": None})
+    with pytest.raises(OTPError, match="legs"):
+        _plan(bad)
+
+
+def test_non_numeric_time_raises_otp_error():
+    bad = _wrap_itin({"startTime": "not-a-number", "endTime": _DEP_MS, "legs": []})
+    with pytest.raises(OTPError, match="time"):
+        _plan(bad)
+
+
+def test_itinerary_not_object_raises_otp_error():
+    with pytest.raises(OTPError):
+        _plan({"data": {"plan": {"itineraries": ["oops"]}}})

@@ -35,7 +35,7 @@ DEFAULT_MODES = [
 # realtime updater. startTime/endTime are epoch milliseconds.
 PLAN_QUERY = """
 query Plan($from: InputCoordinates!, $to: InputCoordinates!, $date: String!,
-           $time: String!, $numItineraries: Int!, $searchWindow: Int,
+           $time: String!, $numItineraries: Int!, $searchWindow: Long,
            $maxTransfers: Int, $modes: [TransportMode!]) {
   plan(from: $from, to: $to, date: $date, time: $time, arriveBy: false,
        numItineraries: $numItineraries, searchWindow: $searchWindow,
@@ -87,7 +87,10 @@ class OTPItinerary:
 def _to_dt(ms) -> datetime:
     if ms is None:
         raise OTPError("missing time in OTP response")
-    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+    try:
+        return datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+    except (TypeError, ValueError, OSError, OverflowError) as e:
+        raise OTPError(f"invalid OTP time {ms!r}: {e}") from e
 
 
 def _stop_id(place: dict) -> Optional[str]:
@@ -96,12 +99,17 @@ def _stop_id(place: dict) -> Optional[str]:
 
 
 def parse_leg(leg: dict) -> OTPLeg:
+    if not isinstance(leg, dict):
+        raise OTPError(f"OTP leg must be an object, got {type(leg).__name__}")
+    mode = leg.get("mode")
+    if not mode:
+        raise OTPError("OTP leg missing 'mode'")
     frm = leg.get("from") or {}
     to = leg.get("to") or {}
     route = leg.get("route") or {}
     trip = leg.get("trip") or {}
     return OTPLeg(
-        mode=leg["mode"],
+        mode=mode,
         from_name=frm.get("name", ""),
         to_name=to.get("name", ""),
         start=_to_dt(leg.get("startTime")),
@@ -114,10 +122,15 @@ def parse_leg(leg: dict) -> OTPLeg:
 
 
 def parse_itinerary(it: dict) -> OTPItinerary:
+    if not isinstance(it, dict):
+        raise OTPError(f"OTP itinerary must be an object, got {type(it).__name__}")
+    legs = it.get("legs", [])
+    if not isinstance(legs, list):
+        raise OTPError(f"itinerary 'legs' must be a list, got {type(legs).__name__}")
     return OTPItinerary(
         start=_to_dt(it.get("startTime")),
         end=_to_dt(it.get("endTime")),
-        legs=[parse_leg(l) for l in it.get("legs", [])],
+        legs=[parse_leg(l) for l in legs],
     )
 
 
@@ -207,7 +220,12 @@ class OTPClient:
         plan = data.get("plan")
         if plan is None:
             raise OTPError("OTP response contained no plan")
-        return [parse_itinerary(it) for it in plan.get("itineraries", [])]
+        try:
+            return [parse_itinerary(it) for it in (plan.get("itineraries") or [])]
+        except OTPError:
+            raise
+        except (KeyError, TypeError, ValueError, AttributeError) as e:
+            raise OTPError(f"malformed OTP response: {e}") from e
 
     def isochrone(self, origin, max_duration_min: int, modes: list) -> list:
         """One-to-many reachability sweep for first-mile hub discovery (§4.2).
