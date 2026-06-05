@@ -20,6 +20,13 @@ def _leg(mode, frm, to, start_min, end_min, line=None):
     )
 
 
+def _leg_s(mode, frm, to, start_s, end_s):
+    return OTPLeg(
+        mode=mode, from_name=frm, to_name=to,
+        start=_T0 + timedelta(seconds=start_s), end=_T0 + timedelta(seconds=end_s),
+    )
+
+
 def _itin(legs):
     return OTPItinerary(start=legs[0].start, end=legs[-1].end, legs=legs)
 
@@ -72,6 +79,30 @@ def test_no_rail_falls_back_to_transit_span():
     ])
     legs = decompose(it)
     assert [l.layer for l in legs] == ["first_mile", "backbone", "last_mile"]
+
+
+def test_first_mile_segment_with_trailing_walk_needs_role():
+    # BUS origin->stop, WALK stop->hub: with the default door_to_door heuristic
+    # there is no rail, so this would be mislabelled. role="first_mile" tags all.
+    it = _itin([
+        _leg("BUS", "Haßlinghausen", "Bus Stop", 0, 20, "100"),
+        _leg("WALK", "Bus Stop", "Wuppertal Hbf", 21, 26),
+    ])
+    legs = decompose(it, role="first_mile")
+    assert [l.layer for l in legs] == ["first_mile", "first_mile"]
+    assert feeder_hub(legs) is None  # a segment has no backbone leg
+
+
+def test_unknown_role_raises():
+    it = _itin([_leg("RAIL", "A", "B", 0, 60)])
+    with pytest.raises(ValueError, match="role"):
+        decompose(it, role="middle")
+
+
+def test_slack_preserves_sub_minute():
+    # 30-second buffer must not collapse to 0 (precise float).
+    it = _itin([_leg_s("RAIL", "A", "B", 0, 600), _leg_s("RAIL", "B", "C", 630, 1200)])
+    assert decompose(it)[0].transfer_slack_min == 0.5
 
 
 def test_decompose_via_real_parser():

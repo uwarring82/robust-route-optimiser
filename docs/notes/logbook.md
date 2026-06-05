@@ -446,6 +446,29 @@ synthetic golden is replaced by one over the `data/sample/` fixture.
 
 ---
 
+## 2026-06-05 — Bridge review response (boundary safety)
+
+Three boundary issues that would amplify under deepening, all fixed:
+
+- **decompose mislabelled segments (major).** The rail-span heuristic is only valid for a complete
+  route; a first-mile segment ending in a walk (`BUS origin→stop, WALK stop→hub`) had no rail and was
+  mislabelled (bus→backbone, walk→last_mile, feeder_hub→origin). Added a `role` param
+  (`door_to_door` default | `first_mile` | `backbone` | `last_mile`); segments pass their role and get
+  a single layer. Unknown role raises.
+- **hub_arrival accepted any itinerary (major).** A full door-to-door route would emit Freiburg as the
+  hub. `hub_arrival(itinerary, t_first_minutes)` now **requires** the window and raises if the
+  itinerary exceeds it (not a first-mile segment); `hub_arrivals` passes it.
+- **slack banker's-rounded (minor).** `round(x)` could turn a 30 s buffer into 0. Now keeps precise
+  minutes (`round(x, 2)`), so sub-minute buffers survive (0.5).
+
+**Verification:** `python -m pytest` → **135 passed** (+4): role tagging of a walk-terminated
+first-mile segment, unknown-role error, sub-minute slack, and hub_arrival rejecting a full route.
+
+**Next (IO):** `routing/deepening.py` — Depth 0/1/2 over the OTP client + the `route_signature` dedup
+pool — the last major piece before the pipeline runs end-to-end.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.

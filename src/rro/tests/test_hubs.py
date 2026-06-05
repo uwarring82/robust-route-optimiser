@@ -27,7 +27,7 @@ def _itin(legs):
 
 def test_hub_arrival_from_single_bus_leg():
     it = _itin([_leg("BUS", "Haßlinghausen", "Wuppertal Hbf", 0, 30, to_stop="de:05124:1")])
-    ha = hub_arrival(it, cost_eur=4.5)
+    ha = hub_arrival(it, 45, cost_eur=4.5)
     assert ha.hub_id == "de:05124:1"            # prefers gtfsId
     assert ha.transfers == 0                     # one transit leg
     assert ha.first_mile_mode == "bus"
@@ -40,17 +40,27 @@ def test_hub_arrival_counts_transfers():
         _leg("BUS", "Haßlinghausen", "Schwelm", 0, 15),
         _leg("BUS", "Schwelm", "Wuppertal Hbf", 18, 35),
     ])
-    assert hub_arrival(it).transfers == 1
+    assert hub_arrival(it, 45).transfers == 1
 
 
 def test_hub_arrival_falls_back_to_name_without_stop_id():
     it = _itin([_leg("BUS", "Haßlinghausen", "Gevelsberg", 0, 20)])
-    assert hub_arrival(it).hub_id == "Gevelsberg"
+    assert hub_arrival(it, 45).hub_id == "Gevelsberg"
+
+
+def test_hub_arrival_rejects_full_door_to_door_route():
+    # A 230-minute route is not a first-mile segment — must not emit a "hub".
+    it = _itin([
+        _leg("BUS", "Haßlinghausen", "Wuppertal Hbf", 0, 30),
+        _leg("RAIL", "Wuppertal Hbf", "Freiburg (Breisgau) Hbf", 41, 230),
+    ])
+    with pytest.raises(ValueError, match="first-mile segment"):
+        hub_arrival(it, 45)
 
 
 def test_empty_itinerary_raises():
     with pytest.raises(ValueError):
-        hub_arrival(OTPItinerary(start=_T0, end=_T0, legs=[]))
+        hub_arrival(OTPItinerary(start=_T0, end=_T0, legs=[]), 45)
 
 
 def test_hub_arrivals_filters_by_t_first():

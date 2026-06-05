@@ -4,21 +4,30 @@ Translates an OTP itinerary (:class:`rro.graph.otp_client.OTPItinerary`) into th
 domain model: each leg tagged with its B1 layer (``first_mile`` / ``backbone`` /
 ``last_mile``) and emitted as a :class:`rro.models.Leg`.
 
-The **backbone** is the long-distance/regional rail span: the run from the first
-``RAIL`` leg to the last ``RAIL`` leg. Anything before it (access walk, feeder
-bus/taxi) is ``first_mile``; anything after (egress tram/bus/walk to the
-destination) is ``last_mile``. When the route ends at the rail destination hub
-there is simply no ``last_mile`` leg (the B1 two-layer relaxation, §4.1). A route
-with no rail leg falls back to bounding the backbone by its transit legs.
+The default ``role="door_to_door"`` decomposition treats the itinerary as a full
+origin→destination route: the **backbone** is the long-distance/regional rail
+span (first ``RAIL`` leg to last ``RAIL`` leg), anything before it (access walk,
+feeder bus/taxi) is ``first_mile``, anything after (egress tram/bus/walk) is
+``last_mile``; ending at the rail hub yields no ``last_mile`` leg (the B1
+two-layer relaxation, §4.1), and a route with no rail leg falls back to bounding
+the backbone by its transit legs.
+
+This rail-span heuristic is only valid for a **complete** route. A first-mile or
+last-mile *segment* (e.g. ``BUS origin→stop, WALK stop→hub``) has no rail and
+would be mislabelled, so callers decomposing a segment must pass the explicit
+``role`` (``"first_mile"`` / ``"backbone"`` / ``"last_mile"``), which tags every
+leg with that single layer.
 """
 
 from __future__ import annotations
 
 from rro.models import Leg
 
+_ROLE_LAYERS = ("first_mile", "backbone", "last_mile")
+
 
 def _assign_layers(modes: list) -> list:
-    """Tag each leg with its B1 layer from the ordered mode sequence (§4.1)."""
+    """Tag each leg of a **door-to-door** route from its ordered mode sequence (§4.1)."""
     up = [(m or "").upper() for m in modes]
     n = len(up)
     rail = [i for i, m in enumerate(up) if m == "RAIL"]
@@ -34,20 +43,29 @@ def _iso(dt, tz):
     return (dt.astimezone(tz) if tz is not None else dt).isoformat()
 
 
-def decompose(itinerary, *, tz=None) -> list:
+def decompose(itinerary, *, role="door_to_door", tz=None) -> list:
     """Return the itinerary's legs as layered :class:`Leg`s (handbook §4.1).
 
+    ``role`` is ``"door_to_door"`` (default; the rail-span heuristic) or one of
+    ``"first_mile"`` / ``"backbone"`` / ``"last_mile"`` to tag every leg with a
+    single layer when decomposing a segment rather than a complete route.
     ``tz`` (a ``tzinfo``) localises the offset-aware OTP times; if omitted they
     are emitted in their original zone (UTC, as parsed from OTP epoch-ms).
-    Per-leg ``transfer_slack_min`` is the raw buffer to the next leg's departure,
-    or ``None`` for the terminal leg.
+    Per-leg ``transfer_slack_min`` is the precise buffer in minutes to the next
+    leg's departure (sub-minute preserved), or ``None`` for the terminal leg.
     """
     legs = itinerary.legs
-    layers = _assign_layers([l.mode for l in legs])
+    if role in _ROLE_LAYERS:
+        layers = [role] * len(legs)
+    elif role == "door_to_door":
+        layers = _assign_layers([l.mode for l in legs])
+    else:
+        raise ValueError(
+            f"unknown decompose role {role!r}; expected 'door_to_door' or one of {_ROLE_LAYERS}")
     out = []
     for i, ol in enumerate(legs):
         nxt = legs[i + 1] if i + 1 < len(legs) else None
-        slack = None if nxt is None else round((nxt.start - ol.end).total_seconds() / 60)
+        slack = None if nxt is None else round((nxt.start - ol.end).total_seconds() / 60, 2)
         out.append(Leg(
             layer=layers[i],
             mode=(ol.mode or "").lower(),
