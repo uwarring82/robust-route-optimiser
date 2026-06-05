@@ -9,6 +9,7 @@ load time — it may come from config or be supplied per-run (``--depart`` /
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -92,6 +93,9 @@ def _check_number(value, key: str, *, minimum=None, maximum=None, exclusive_min=
     # bool is a subclass of int — reject it where a number is expected.
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ConfigError(f"{key} must be a number")
+    # NaN/Inf slip past range checks (every comparison with NaN is false).
+    if not math.isfinite(value):
+        raise ConfigError(f"{key} must be a finite number, got {value!r}")
     if minimum is not None and (value <= minimum if exclusive_min else value < minimum):
         raise ConfigError(f"{key} must be {'>' if exclusive_min else '>='} {minimum}")
     if maximum is not None and value > maximum:

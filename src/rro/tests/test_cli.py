@@ -61,7 +61,10 @@ def test_depart_flag_supplies_missing_departure(tmp_path, capsys):
 
 @pytest.mark.parametrize(
     "flag,value",
-    [("--alpha-c", "-1"), ("--quantile", "2"), ("--epsilon", "-5")],
+    [
+        ("--alpha-c", "-1"), ("--quantile", "2"), ("--epsilon", "-5"),
+        ("--alpha-c", "nan"), ("--quantile", "nan"), ("--epsilon", "inf"),
+    ],
 )
 def test_out_of_range_overrides_exit_2(tmp_path, capsys, flag, value):
     # CLI overrides must be re-validated, not passed through to the pipeline.

@@ -261,6 +261,21 @@ first synthetic portfolio — locking the B4→Layer C seam before any OTP wirin
 
 ---
 
+## 2026-06-05 — Scaffold review response (round 3: non-finite numbers)
+
+- **NaN/Inf bypassed range checks (major).** Every comparison against `NaN` is false, so
+  `--alpha-c nan`, `--epsilon nan`, `--quantile nan` (and YAML `.nan`/`.inf`) passed validation.
+  Added `math.isfinite` to `_check_number`, which covers both the YAML and CLI paths (shared
+  validator). `Inf` is rejected too.
+- **§8.1 precedence wording (minor).** "all other parameters come from corridor.yml" contradicted
+  the `--alpha-c/--epsilon/--quantile` overrides listed next; reworded to list the calibration
+  overrides explicitly and note they are re-validated (exit 2).
+
+**Verification:** `python -m pytest` → **69 passed** (+8). Reproduced: CLI `nan`/`inf` overrides and
+YAML `.nan` all exit 2.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.

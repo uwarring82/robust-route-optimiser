@@ -1186,7 +1186,7 @@ rro plan \
   [--card]            # also print the Coastline §7 card table (default: on)
 ```
 
-Flag-to-config precedence: `--from/--to/--depart` override `origin/destination/departure_time`; all other parameters come from `corridor.yml`. The departure timestamp is ISO 8601 with offset and is passed verbatim into `query.departure_time`. `--alpha-c`, `--epsilon`, and `--quantile` are accepted as overrides for calibration runs (Coastline §6 parameter-sensitivity note) but default from config.
+Flag-to-config precedence: `--from/--to/--depart` override `origin/destination/departure_time`, and `--alpha-c/--epsilon/--quantile` override the corresponding calibration parameters (Coastline §6 parameter-sensitivity note); every other parameter comes from `corridor.yml`. All overrides are re-validated (`config.validate_config`), so an out-of-range flag fails with exit `2`. The departure timestamp is ISO 8601 with offset and is passed verbatim into `query.departure_time`.
 
 Exit codes: `0` = portfolio emitted (min 2 strategies, Coastline §B4); `1` = internal error or not-yet-implemented pipeline (current scaffold); `2` = config or GTFS/OSM validation failure (`config.py` / `data/ingest.py`); `3` = OTP graph/query error (`graph/otp_client.py`); `4` = portfolio underfull (fewer than 2 clusterable strategies survived B3). Constants `engine_version = "0.1.0-a"` and `coastline_version = "0.6.0-rc1"` are stamped into every `query` block.
 

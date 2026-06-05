@@ -167,3 +167,18 @@ def test_validate_config_catches_overridden_epsilon(valid_config_dict):
     cfg.epsilon.time_min = -5
     with pytest.raises(ConfigError, match="epsilon.time_min"):
         validate_config(cfg)
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_numbers_rejected_in_yaml(valid_config_dict, bad):
+    valid_config_dict["alpha_c"] = bad
+    with pytest.raises(ConfigError, match="finite"):
+        parse_config(valid_config_dict)
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_non_finite_numbers_rejected_in_validate_config(valid_config_dict, bad):
+    cfg = parse_config(valid_config_dict)
+    cfg.quantile = bad
+    with pytest.raises(ConfigError, match="finite"):
+        validate_config(cfg)
