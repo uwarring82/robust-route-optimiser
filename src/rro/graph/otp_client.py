@@ -203,7 +203,13 @@ class OTPClient:
             raise OTPError("OTP response was not a JSON object")
         errors = resp.get("errors")
         if errors:
-            msgs = "; ".join(str(e.get("message", e)) for e in errors)
+            if isinstance(errors, list):
+                msgs = "; ".join(
+                    str(e.get("message", e)) if isinstance(e, dict) else str(e)
+                    for e in errors
+                )
+            else:
+                msgs = str(errors)
             raise OTPError(f"OTP GraphQL errors: {msgs}")
         data = resp.get("data")
         if data is None:
@@ -234,8 +240,13 @@ class OTPClient:
         plan = data.get("plan")
         if plan is None:
             raise OTPError("OTP response contained no plan")
+        # An empty `itineraries: []` is a valid "no routes" result; a missing or
+        # null list is a response-shape failure, not "no routes".
+        itineraries = plan.get("itineraries")
+        if not isinstance(itineraries, list):
+            raise OTPError("OTP response 'plan.itineraries' is missing or not a list")
         try:
-            return [parse_itinerary(it) for it in (plan.get("itineraries") or [])]
+            return [parse_itinerary(it) for it in itineraries]
         except OTPError:
             raise
         except (KeyError, TypeError, ValueError, AttributeError) as e:

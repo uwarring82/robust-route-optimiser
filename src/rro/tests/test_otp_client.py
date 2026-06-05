@@ -183,3 +183,21 @@ def test_non_numeric_time_raises_otp_error():
 def test_itinerary_not_object_raises_otp_error():
     with pytest.raises(OTPError):
         _plan({"data": {"plan": {"itineraries": ["oops"]}}})
+
+
+def test_non_dict_graphql_errors_normalised():
+    # Some servers return a bare list of strings under "errors".
+    with pytest.raises(OTPError, match="bad"):
+        _plan({"errors": ["bad"], "data": None})
+    with pytest.raises(OTPError, match="boom"):
+        _plan({"errors": "boom", "data": None})
+
+
+def test_missing_itineraries_raises_otp_error():
+    with pytest.raises(OTPError, match="itineraries"):
+        _plan({"data": {"plan": {}}})
+
+
+def test_null_itineraries_raises_otp_error():
+    with pytest.raises(OTPError, match="itineraries"):
+        _plan({"data": {"plan": {"itineraries": None}}})

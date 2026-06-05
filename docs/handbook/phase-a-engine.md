@@ -599,24 +599,35 @@ Depth 2 is the **creative expansion 2.5×** of Coastline §B3: the candidate bud
 
 For each surviving hub `h` and each depth `d`, the controller issues one OTP `plan` GraphQL query via `graph/otp_client.py`:
 
+This matches the implemented query in `graph/otp_client.py` (OTP 2.9.0; `searchWindow`
+is `Long` in **seconds**, `transportModes` is `[TransportMode]`; date/time are passed
+as separate `$date`/`$time` variables):
+
 ```graphql
-query Backbone($from: InputCoordinates!, $to: InputCoordinates!,
-               $dateTime: ..., $numItineraries: Int!, $maxTransfers: Int!) {
-  plan(
-    from: $from, to: $to,
-    date: <t_dep.date>, time: <t_dep.time>,
-    arriveBy: false,
-    transportModes: [{ mode: RAIL }, { mode: BUS }, { mode: TRAM },
-                     { mode: SUBWAY }, { mode: WALK }],
-    numItineraries: $numItineraries,    # depth-scaled candidate budget
-    maxTransfers: $maxTransfers,        # depth-scaled structural reach
-    searchWindow: <search_window_seconds>  # depth-scaled radius (Depth 2 ×2.5)
-  ) { itineraries { startTime endTime legs {
-        mode route { shortName }
-        from { name } to { name } startTime endTime
-        trip { gtfsId } } } }
+query Plan($from: InputCoordinates!, $to: InputCoordinates!, $date: String!,
+           $time: String!, $numItineraries: Int!, $searchWindow: Long,
+           $maxTransfers: Int, $modes: [TransportMode]) {
+  plan(from: $from, to: $to, date: $date, time: $time, arriveBy: false,
+       numItineraries: $numItineraries,   # depth-scaled candidate budget
+       searchWindow: $searchWindow,        # depth-scaled radius, seconds (Depth 2 ×2.5)
+       maxTransfers: $maxTransfers,        # depth-scaled structural reach
+       transportModes: $modes) {           # default RAIL/BUS/TRAM/SUBWAY/WALK
+    itineraries {
+      startTime endTime
+      legs {
+        mode startTime endTime
+        from { name stop { gtfsId } }
+        to { name stop { gtfsId } }
+        route { shortName }
+        trip { gtfsId }
+      }
+    }
+  }
 }
 ```
+
+The deprecated epoch-millisecond `startTime`/`endTime` leg fields are used (functional
+in 2.9.0); see §3.5 for the `plan` deprecation and the `planConnection` forward-hook.
 
 The query carries **no `GTFS-RT` source and no realtime updater**: the OTP graph is built from corridor GTFS feeds plus the OSM PBF extract only (Coastline §5). Every returned itinerary is treated as a `T_schedule` realisation; the controller stamps each with `confidence = "scheduled"` semantics downstream (the JSON `confidence` string), consistent with the degenerate distribution. `arriveBy: false` anchors the search to the requested departure; the last-mile layer is appended separately and is not part of the backbone budget (§4.1).
 
