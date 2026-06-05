@@ -61,6 +61,7 @@ query Plan($from: InputCoordinates!, $to: InputCoordinates!, $date: String!,
         mode
         startTime
         endTime
+        distance
         from { name stop { gtfsId } }
         to { name stop { gtfsId } }
         route { shortName }
@@ -85,6 +86,7 @@ class OTPLeg:
     to_stop_id: Optional[str] = None
     route_short_name: Optional[str] = None
     trip_id: Optional[str] = None
+    distance: Optional[float] = None  # metres (OTP Leg.distance)
 
 
 @dataclass
@@ -132,6 +134,7 @@ def parse_leg(leg: dict) -> OTPLeg:
         to_stop_id=_stop_id(to),
         route_short_name=route.get("shortName"),
         trip_id=trip.get("gtfsId"),
+        distance=leg.get("distance"),
     )
 
 

@@ -47,6 +47,8 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--to", dest="destination", help="override config destination")
     plan.add_argument("--depart", dest="departure_time", help="ISO 8601 departure; overrides config")
     plan.add_argument("--config", required=True, help="path to corridor.yml")
+    plan.add_argument("--otp-url", default="http://localhost:8080/otp/gtfs/v1",
+                      help="OTP 2.x GTFS GraphQL endpoint")
     plan.add_argument("--json-out", help="write the JSON portfolio to this path")
     plan.add_argument("--card", action="store_true", default=True, help="print the §7 card table")
     plan.add_argument("--alpha-c", type=float, dest="alpha_c", help="override α_C")
@@ -91,17 +93,51 @@ def cmd_plan(args) -> int:
         print(f"usage error: {e}", file=sys.stderr)
         return EXIT_VALIDATION
 
-    # Phase A pipeline (B1→B4) is not yet wired in this scaffold. Return a
-    # documented diagnostic (exit 1) rather than crashing with a traceback.
-    print(
-        "rro: Phase A pipeline not yet implemented (scaffold). "
-        f"Config resolved for {cfg.origin!r} → {cfg.destination!r} @ {departure}. "
-        "Wiring (handbook §2.3): data.ingest → graph.build → "
-        "routing(decompose/hubs/dominance/deepening) → "
-        "scoring(objective/creativity/robustness) → portfolio(cluster/output/card).",
-        file=sys.stderr,
-    )
-    return EXIT_NOTIMPL
+    from datetime import datetime, timezone
+
+    from rro.graph.otp_client import OTPClient, OTPError
+    from rro.pipeline import otp_plan_fns, plan_portfolio
+    from rro.portfolio.cluster import UnderfullPortfolioError
+    from rro.portfolio.output import to_json
+
+    client = OTPClient(args.otp_url)
+    hub_plan_fn, backbone_plan_fn = otp_plan_fns(client)
+    generated_at = datetime.now(timezone.utc).isoformat()
+    try:
+        portfolio = plan_portfolio(
+            cfg, departure, hub_plan_fn=hub_plan_fn,
+            backbone_plan_fn=backbone_plan_fn, generated_at=generated_at)
+    except UnderfullPortfolioError as e:
+        print(f"underfull portfolio: {e}", file=sys.stderr)
+        return EXIT_UNDERFULL
+    except NotImplementedError as e:
+        print(f"not yet implemented: {e}", file=sys.stderr)
+        return EXIT_NOTIMPL
+    except OTPError as e:
+        print(f"OTP error: {e}", file=sys.stderr)
+        return EXIT_OTP
+
+    document = to_json(portfolio)
+    if args.json_out:
+        with open(args.json_out, "w", encoding="utf-8") as fh:
+            fh.write(document + "\n")
+    else:
+        print(document)
+    if args.card:
+        _print_card_table(portfolio)
+    return EXIT_OK
+
+
+def _print_card_table(portfolio) -> None:
+    """Render the Coastline §7 summary cards to stderr (handbook §8.1)."""
+    headers = ["Strategy", "Arrival", "Confidence", "Transfers", "Transfer stations", "Price"]
+    print(" | ".join(headers), file=sys.stderr)
+    for s in portfolio.strategies:
+        c = s.card
+        price = f"{c.price_eur:.2f} €" if c.price_eur is not None else "—"
+        print(" | ".join([c.strategy_label, c.expected_arrival, c.confidence,
+                          str(c.transfers), ", ".join(c.transfer_stations), price]),
+              file=sys.stderr)
 
 
 def main(argv: Optional[list] = None) -> int:

@@ -40,6 +40,7 @@ class Leg:
     arr: str
     line: Optional[str] = None
     transfer_slack_min: Optional[float] = None
+    distance_m: Optional[float] = None  # internal (backbone km / C(r)); not serialised
 
 
 @dataclass
@@ -113,10 +114,15 @@ class ReferenceCorridor:
 
 @dataclass
 class ReferenceSet:
-    """The two-pass creativity reference set R, versioned (handbook §6.3)."""
+    """The two-pass creativity reference set R, versioned (handbook §6.3).
+
+    ``leg_keys`` is the union of ``(line, from, to)`` backbone legs across the R
+    corridors — used to measure a route's km on R for C(r).
+    """
 
     corridors: list  # list[ReferenceCorridor]
     version: int = 1
+    leg_keys: set = field(default_factory=set)
 
 
 @dataclass

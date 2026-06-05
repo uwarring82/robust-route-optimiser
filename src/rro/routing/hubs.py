@@ -25,6 +25,12 @@ def _disallowed_modes(itinerary) -> set:
     return {(l.mode or "").upper() for l in itinerary.legs} - _ALLOWED_FIRST_MILE
 
 
+def qualifies_as_first_mile(itinerary, t_first_minutes: int) -> bool:
+    """True iff the itinerary is a valid first-mile segment (within T_first and
+    using only walk/bus/taxi, §4.2)."""
+    return _minutes(itinerary) <= t_first_minutes and not _disallowed_modes(itinerary)
+
+
 def hub_arrival(itinerary, t_first_minutes: int, *, cost_eur: float = 0.0) -> HubArrival:
     """Build a :class:`HubArrival` from a first-mile itinerary (origin → hub, §4.2).
 

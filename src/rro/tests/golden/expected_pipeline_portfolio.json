@@ -1,0 +1,284 @@
+{
+  "query": {
+    "origin": "Haßlinghausen",
+    "destination": "Freiburg (Breisgau) Hbf",
+    "departure_time": "2026-06-08T07:00:00+02:00",
+    "generated_at": "2026-06-05T00:00:00+02:00",
+    "coastline_version": "0.6.0-rc1",
+    "engine_version": "0.1.0-a"
+  },
+  "parameters": {
+    "alpha_c": 0.7,
+    "quantile": 0.8,
+    "t_first_minutes": 45,
+    "epsilon": 3.0,
+    "mode": "deterministic"
+  },
+  "reference_corridors": [
+    {
+      "corridor_id": "wuppertal-hbf-köln-hbf-freiburg-breisgau-hbf",
+      "backbone_km": 510.0
+    },
+    {
+      "corridor_id": "hagen-hbf-köln-hbf-freiburg-breisgau-hbf",
+      "backbone_km": 505.0
+    },
+    {
+      "corridor_id": "wuppertal-hbf-freiburg-breisgau-hbf",
+      "backbone_km": 500.0
+    }
+  ],
+  "strategies": [
+    {
+      "cluster": "fastest",
+      "label": "Schnellste",
+      "score": {
+        "J": 275.0,
+        "Q08_T_eff_min": 275.0,
+        "E_T_eff_min": 275.0,
+        "creativity": 0.0,
+        "transfers": 2,
+        "min_transfer_slack_min": 10.0,
+        "fragile_legs": 0,
+        "backbone_km": 510.0,
+        "reference_km": 510.0
+      },
+      "legs": [
+        {
+          "layer": "first_mile",
+          "mode": "bus",
+          "from": "Haßlinghausen",
+          "to": "Wuppertal Hbf",
+          "dep": "2026-06-08T07:10:00+00:00",
+          "arr": "2026-06-08T07:45:00+00:00",
+          "line": null,
+          "transfer_slack_min": 11.0
+        },
+        {
+          "layer": "backbone",
+          "mode": "rail",
+          "from": "Wuppertal Hbf",
+          "to": "Köln Hbf",
+          "dep": "2026-06-08T07:56:00+00:00",
+          "arr": "2026-06-08T08:40:00+00:00",
+          "line": "RE",
+          "transfer_slack_min": 10.0
+        },
+        {
+          "layer": "backbone",
+          "mode": "rail",
+          "from": "Köln Hbf",
+          "to": "Freiburg (Breisgau) Hbf",
+          "dep": "2026-06-08T08:50:00+00:00",
+          "arr": "2026-06-08T11:45:00+00:00",
+          "line": "ICE 105",
+          "transfer_slack_min": null
+        }
+      ],
+      "card": {
+        "strategy_label": "Schnellste",
+        "expected_arrival": "11:45",
+        "confidence": "scheduled",
+        "transfers": 2,
+        "transfer_stations": [
+          "Wuppertal Hbf",
+          "Köln Hbf"
+        ],
+        "price_eur": null,
+        "comfort": [],
+        "risks": []
+      }
+    },
+    {
+      "cluster": "robust",
+      "label": "Sicherste",
+      "score": {
+        "J": 285.0,
+        "Q08_T_eff_min": 285.0,
+        "E_T_eff_min": 285.0,
+        "creativity": 0.0,
+        "transfers": 1,
+        "min_transfer_slack_min": 11.0,
+        "fragile_legs": 0,
+        "backbone_km": 500.0,
+        "reference_km": 500.0
+      },
+      "legs": [
+        {
+          "layer": "first_mile",
+          "mode": "bus",
+          "from": "Haßlinghausen",
+          "to": "Wuppertal Hbf",
+          "dep": "2026-06-08T07:10:00+00:00",
+          "arr": "2026-06-08T07:45:00+00:00",
+          "line": null,
+          "transfer_slack_min": 11.0
+        },
+        {
+          "layer": "backbone",
+          "mode": "rail",
+          "from": "Wuppertal Hbf",
+          "to": "Freiburg (Breisgau) Hbf",
+          "dep": "2026-06-08T07:56:00+00:00",
+          "arr": "2026-06-08T11:55:00+00:00",
+          "line": "ICE 1",
+          "transfer_slack_min": null
+        }
+      ],
+      "card": {
+        "strategy_label": "Sicherste",
+        "expected_arrival": "11:55",
+        "confidence": "scheduled",
+        "transfers": 1,
+        "transfer_stations": [
+          "Wuppertal Hbf"
+        ],
+        "price_eur": null,
+        "comfort": [],
+        "risks": []
+      }
+    },
+    {
+      "cluster": "low_transfer",
+      "label": "Entspannt",
+      "score": {
+        "J": 295.0,
+        "Q08_T_eff_min": 295.0,
+        "E_T_eff_min": 295.0,
+        "creativity": 0.0,
+        "transfers": 3,
+        "min_transfer_slack_min": 3.0,
+        "fragile_legs": 0,
+        "backbone_km": 505.0,
+        "reference_km": 505.0
+      },
+      "legs": [
+        {
+          "layer": "first_mile",
+          "mode": "bus",
+          "from": "Haßlinghausen",
+          "to": "Schwelm",
+          "dep": "2026-06-08T07:05:00+00:00",
+          "arr": "2026-06-08T07:25:00+00:00",
+          "line": null,
+          "transfer_slack_min": 3.0
+        },
+        {
+          "layer": "first_mile",
+          "mode": "bus",
+          "from": "Schwelm",
+          "to": "Hagen Hbf",
+          "dep": "2026-06-08T07:28:00+00:00",
+          "arr": "2026-06-08T07:40:00+00:00",
+          "line": null,
+          "transfer_slack_min": 11.0
+        },
+        {
+          "layer": "backbone",
+          "mode": "rail",
+          "from": "Hagen Hbf",
+          "to": "Köln Hbf",
+          "dep": "2026-06-08T07:51:00+00:00",
+          "arr": "2026-06-08T08:35:00+00:00",
+          "line": "RE2",
+          "transfer_slack_min": 15.0
+        },
+        {
+          "layer": "backbone",
+          "mode": "rail",
+          "from": "Köln Hbf",
+          "to": "Freiburg (Breisgau) Hbf",
+          "dep": "2026-06-08T08:50:00+00:00",
+          "arr": "2026-06-08T12:00:00+00:00",
+          "line": "ICE 105",
+          "transfer_slack_min": null
+        }
+      ],
+      "card": {
+        "strategy_label": "Entspannt",
+        "expected_arrival": "12:00",
+        "confidence": "scheduled",
+        "transfers": 3,
+        "transfer_stations": [
+          "Schwelm",
+          "Hagen Hbf",
+          "Köln Hbf"
+        ],
+        "price_eur": null,
+        "comfort": [],
+        "risks": []
+      }
+    },
+    {
+      "cluster": "creative",
+      "label": "Überraschung",
+      "score": {
+        "J": 299.3,
+        "Q08_T_eff_min": 300.0,
+        "E_T_eff_min": 300.0,
+        "creativity": 1.0,
+        "transfers": 3,
+        "min_transfer_slack_min": 3.0,
+        "fragile_legs": 0,
+        "backbone_km": 460.0,
+        "reference_km": 0.0
+      },
+      "legs": [
+        {
+          "layer": "first_mile",
+          "mode": "bus",
+          "from": "Haßlinghausen",
+          "to": "Schwelm",
+          "dep": "2026-06-08T07:05:00+00:00",
+          "arr": "2026-06-08T07:25:00+00:00",
+          "line": null,
+          "transfer_slack_min": 3.0
+        },
+        {
+          "layer": "first_mile",
+          "mode": "bus",
+          "from": "Schwelm",
+          "to": "Hagen Hbf",
+          "dep": "2026-06-08T07:28:00+00:00",
+          "arr": "2026-06-08T07:40:00+00:00",
+          "line": null,
+          "transfer_slack_min": 11.0
+        },
+        {
+          "layer": "backbone",
+          "mode": "rail",
+          "from": "Hagen Hbf",
+          "to": "Frankfurt (Main) Hbf",
+          "dep": "2026-06-08T07:51:00+00:00",
+          "arr": "2026-06-08T09:30:00+00:00",
+          "line": "IC",
+          "transfer_slack_min": 10.0
+        },
+        {
+          "layer": "backbone",
+          "mode": "rail",
+          "from": "Frankfurt (Main) Hbf",
+          "to": "Freiburg (Breisgau) Hbf",
+          "dep": "2026-06-08T09:40:00+00:00",
+          "arr": "2026-06-08T12:05:00+00:00",
+          "line": "ICE 73",
+          "transfer_slack_min": null
+        }
+      ],
+      "card": {
+        "strategy_label": "Überraschung",
+        "expected_arrival": "12:05",
+        "confidence": "scheduled",
+        "transfers": 3,
+        "transfer_stations": [
+          "Schwelm",
+          "Hagen Hbf",
+          "Frankfurt (Main) Hbf"
+        ],
+        "price_eur": null,
+        "comfort": [],
+        "risks": []
+      }
+    }
+  ]
+}

@@ -75,6 +75,7 @@ def decompose(itinerary, *, role="door_to_door", tz=None) -> list:
             arr=_iso(ol.end, tz),
             line=ol.route_short_name,
             transfer_slack_min=slack,
+            distance_m=ol.distance,
         ))
     return out
 

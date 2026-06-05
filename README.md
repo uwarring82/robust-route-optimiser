@@ -45,7 +45,7 @@ robust-route-optimiser/
 │   ├── data/ graph/ routing/      # ingest, OTP build, B1–B3
 │   ├── scoring/ portfolio/        # J(r)/C(r)/robustness, B4, JSON, §7 cards
 │   ├── cli.py                     # `rro plan` entry point
-│   └── tests/                     # pytest suite (149 tests) + golden/ portfolio
+│   └── tests/                     # pytest suite (156 tests) + golden/ portfolio
 ├── data/sample/                   # Small example GTFS/OSM fixture (never raw bulk)
 ├── pyproject.toml                 # Packaging, `rro` CLI, pytest config
 ├── .github/workflows/pages.yml    # GitHub Pages deployment
@@ -89,7 +89,7 @@ RRO is part of the [Open-Science Harbour](https://uwarring82.github.io/me). It f
 | Phase | Status |
 |---|---|
 | Coastline architecture | ✅ v0.6.0-rc1 freeze candidate |
-| Phase A — Static prototype | 🔨 Engine modules built + tested; OTP graph build + end-to-end wiring pending |
+| Phase A — Static prototype | 🔨 End-to-end pipeline wired + tested offline; live OTP (graph build + isochrone hub discovery) pending |
 | Phase B — Real-time + G′ | 🔲 Not started |
 | Phase C — Historical conditioning | 🔲 Not started |
 
@@ -101,12 +101,13 @@ robustness, dominance, route signature, **B4 clustering** (with a synthetic gold
 the B4→Layer C seam), serialisation/§7 cards, the **OTP GraphQL `plan` client** (query + response
 parser, injectable transport, pinned to OTP 2.9.0), **feed registry + GTFS/OSM ingestion**
 (fetch/validate/version-pin, injectable downloader), the **OTP→domain bridge** (B1 decomposition to
-layered legs, B2 hub-arrival parsing), and the **B3 deepening controller** (depth ladder + dedup pool
-+ ε-termination). Remaining: the OTP graph build, isochrone hub enumeration, and the end-to-end
-pipeline wiring (typed stubs).
+layered legs, B2 hub-arrival parsing), the **B3 deepening controller** (depth ladder + dedup pool +
+ε-termination), and the **end-to-end pipeline** (hubs → dominance → deepen → two-pass C(r) → score →
+B4 → portfolio), tested offline against a fake OTP client with a golden portfolio. Remaining: the live
+OTP pieces — the graph build and isochrone-based hub discovery (typed stubs).
 
 ```bash
-python -m pytest          # 149 tests (pyproject sets pythonpath=src)
+python -m pytest          # 156 tests (pyproject sets pythonpath=src)
 PYTHONPATH=src python -m rro.cli plan --config corridor.yml --depart 2026-06-08T07:30:00+02:00
 ```
 

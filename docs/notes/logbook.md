@@ -514,6 +514,36 @@ with a fake OTP client; then `cli.plan` produces a real portfolio over `data/sam
 
 ---
 
+## 2026-06-05 — End-to-end pipeline wired
+
+`pipeline.plan_portfolio` now threads the whole Phase A path: hub discovery (B2) → static dominance →
+progressive deepening (B3) → two-pass C(r) calibration → scoring → B4 clustering → portfolio JSON.
+Parameterised by two injectable plan functions (`hub_plan_fn`, `backbone_plan_fn`), so it runs fully
+offline in tests; `otp_plan_fns(client)` builds the live OTP-backed pair.
+
+- **Enablers:** added leg `distance` through OTP (`OTPLeg.distance`, query field, parser) → domain
+  (`Leg.distance_m`, not serialised) → `decompose`; needed for backbone km / C(r).
+- **Two-pass creativity (real):** `calibrate_reference` freezes the top-3 backbone signatures by km as
+  R (with `leg_keys`); `creativity_of_route` / `reference_km_of` measure leg-level overlap. `_corridor_id`
+  slugs the hub chain.
+- **Scoring assembly:** `scoring/assemble.score_route` → `ScoredCandidate` with the canonical `Score`;
+  `creativity` derived from the rounded `backbone_km`/`reference_km` so the §2.8 invariant holds exactly.
+- **Refactor:** the §4.1 transfer/slack helpers already moved to `decompose` (B1) last commit are reused.
+- **CLI:** `cmd_plan` now calls `plan_portfolio` (OTP-backed); `--otp-url` added; exit codes wired
+  (4 underfull, 3 OTP, 1 not-implemented), `--card` renders the §7 table. Live path stops cleanly at the
+  isochrone stub (exit 1).
+
+**Verification:** `python -m pytest` → **156 passed** (+7). New: creativity calibration / overlap /
+slug determinism; end-to-end pipeline producing a 4-strategy portfolio (fastest/robust/low_transfer/
+creative) over a hand-built fixture, scoring invariants, and a **pipeline golden**
+(`expected_pipeline_portfolio.json`). Smoke: `rro plan` reaches the pipeline and exits 1 at isochrone.
+
+**Remaining for a live run:** `graph/build.py` (OTP 2.9.0 graph build) and `otp_client.isochrone` +
+`hubs.enumerate_hubs` (one-to-many hub discovery) — then `rro plan` produces a real portfolio against a
+served OTP instance over the `data/sample/` fixture.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.
