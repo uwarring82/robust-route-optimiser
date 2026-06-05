@@ -1280,7 +1280,7 @@ The objective is the coastline form throughout (Coastline §0.2): `J(r) = Q₀.�
 | Schnellste | 11:58 | scheduled | 2 | Wuppertal Hbf, Köln Hbf | 89.90 € |
 | Überraschung | 12:13 | scheduled | 2 | Hagen Hbf, Frankfurt (Main) Hbf | 71.40 € |
 
-The weather/comfort/risk columns of the Coastline §7 card are forward-hooks (Phase B activates A-signals and comfort §0.5); in Phase A they render as empty cells.
+The weather/comfort/risk columns of the Coastline §7 card are forward-hooks (Phase B activates A-signals and comfort §0.5); in Phase A they render as empty cells — except the risk column, which carries an experimental-taxi low-confidence warning when a taxi first-mile leg is selected (§4.2).
 
 ### 8.2  Jupyter usage
 
