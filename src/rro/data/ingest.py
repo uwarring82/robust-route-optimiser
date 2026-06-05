@@ -12,7 +12,9 @@ offline runs need no network, mirroring the OTP client's transport seam.
 
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import json
 import os
 import zipfile
@@ -77,28 +79,96 @@ def _default_downloader(url: str, dest: str) -> None:
     urllib.request.urlretrieve(url, dest)  # noqa: S310 - url comes from the pinned registry
 
 
+def _read_csv(z: zipfile.ZipFile, archive_name: str) -> list:
+    with z.open(archive_name) as raw:
+        return list(csv.DictReader(io.TextIOWrapper(raw, encoding="utf-8-sig", newline="")))
+
+
 def validate_gtfs(path) -> list:
-    """Structural GTFS validation: valid zip + required files present (§3.3, §8.4)."""
+    """Structural GTFS validation (handbook §3.3, §8.4).
+
+    A fast in-process pre-flight gate: valid zip; required files + a service
+    calendar present; referential integrity (``trips`` → routes/services,
+    ``stop_times`` → trips/stops); and strictly increasing ``stop_sequence`` per
+    trip. This is intended for the trimmed corridor sample and pinned feeds; the
+    canonical full check for large national archives is the external MobilityData
+    *gtfs-validator* (§3.3). Returns ERROR/WARNING :class:`Finding`s.
+    """
     if not zipfile.is_zipfile(path):
         return [Finding("ERROR", f"{path} is not a valid zip archive")]
+
+    findings = []
     with zipfile.ZipFile(path) as z:
-        names = {os.path.basename(n) for n in z.namelist()}
-    findings = [Finding("ERROR", f"GTFS missing required file: {m}")
-                for m in sorted(REQUIRED_GTFS - names)]
-    if "calendar.txt" not in names and "calendar_dates.txt" not in names:
-        findings.append(Finding("ERROR", "GTFS missing service calendar "
-                                          "(calendar.txt or calendar_dates.txt)"))
+        by_base = {}
+        for n in z.namelist():
+            by_base.setdefault(os.path.basename(n), n)
+
+        for m in sorted(REQUIRED_GTFS - set(by_base)):
+            findings.append(Finding("ERROR", f"GTFS missing required file: {m}"))
+        if "calendar.txt" not in by_base and "calendar_dates.txt" not in by_base:
+            findings.append(Finding("ERROR", "GTFS missing service calendar "
+                                              "(calendar.txt or calendar_dates.txt)"))
+        if REQUIRED_GTFS - set(by_base):
+            return findings  # core files missing — deeper checks not meaningful
+
+        try:
+            stops = _read_csv(z, by_base["stops.txt"])
+            routes = _read_csv(z, by_base["routes.txt"])
+            trips = _read_csv(z, by_base["trips.txt"])
+            stop_times = _read_csv(z, by_base["stop_times.txt"])
+            services = set()
+            for cal in ("calendar.txt", "calendar_dates.txt"):
+                if cal in by_base:
+                    services |= {r["service_id"] for r in _read_csv(z, by_base[cal]) if r.get("service_id")}
+        except (csv.Error, UnicodeDecodeError, KeyError) as e:
+            findings.append(Finding("ERROR", f"GTFS parse error: {e}"))
+            return findings
+
+    stop_ids = {r["stop_id"] for r in stops if r.get("stop_id")}
+    route_ids = {r["route_id"] for r in routes if r.get("route_id")}
+    trip_ids = {r["trip_id"] for r in trips if r.get("trip_id")}
+
+    for label, ids in (("stops.txt", stop_ids), ("routes.txt", route_ids), ("trips.txt", trip_ids)):
+        if not ids:
+            findings.append(Finding("ERROR", f"{label} has no id values"))
+
+    for rid in sorted({t["route_id"] for t in trips if t.get("route_id") and t["route_id"] not in route_ids}):
+        findings.append(Finding("ERROR", f"trips.txt references unknown route_id {rid!r}"))
+    for sid in sorted({t["service_id"] for t in trips if t.get("service_id") and t["service_id"] not in services}):
+        findings.append(Finding("ERROR", f"trips.txt references unknown service_id {sid!r}"))
+    for tid in sorted({s["trip_id"] for s in stop_times if s.get("trip_id") and s["trip_id"] not in trip_ids}):
+        findings.append(Finding("ERROR", f"stop_times.txt references unknown trip_id {tid!r}"))
+    for sid in sorted({s["stop_id"] for s in stop_times if s.get("stop_id") and s["stop_id"] not in stop_ids}):
+        findings.append(Finding("ERROR", f"stop_times.txt references unknown stop_id {sid!r}"))
+
+    seqs_by_trip = {}
+    for st in stop_times:
+        tid = st.get("trip_id")
+        if tid is not None:
+            seqs_by_trip.setdefault(tid, []).append(st.get("stop_sequence"))
+    for tid, seqs in seqs_by_trip.items():
+        try:
+            nums = [int(s) for s in seqs]
+        except (TypeError, ValueError):
+            findings.append(Finding("ERROR", f"stop_times.txt has non-integer stop_sequence for trip {tid!r}"))
+            continue
+        if any(nums[i] >= nums[i + 1] for i in range(len(nums) - 1)):
+            findings.append(Finding("ERROR", f"stop_times.txt stop_sequence not strictly increasing for trip {tid!r}"))
     return findings
 
 
 def validate_osm(path) -> list:
-    """Light OSM PBF validation: non-empty, with an ``OSMHeader`` near the start (§3.3)."""
+    """OSM PBF structural validation: non-empty + a valid ``OSMHeader`` (§3.3).
+
+    Deeper checks (way/node counts, corridor-bbox coverage) require a PBF parser
+    and are **deferred** — a forward-hook behind this seam.
+    """
     if os.path.getsize(path) == 0:
         return [Finding("ERROR", "OSM PBF is empty")]
     with open(path, "rb") as f:
         head = f.read(64)
     if b"OSMHeader" not in head:
-        return [Finding("WARNING", "OSM file does not look like a PBF (no OSMHeader in header)")]
+        return [Finding("ERROR", "OSM file is not a valid PBF (no OSMHeader in header)")]
     return []
 
 
@@ -114,11 +184,25 @@ def ingest_feed(feed: Feed, cache_dir, *, downloader: Optional[Callable] = None,
     cache.mkdir(parents=True, exist_ok=True)
     dest = cache / f"{feed.id}-{feed.version_pin or 'unpinned'}{_ext(feed.kind)}"
 
-    if not dest.exists():
+    # Skip download only when the cached artefact exists AND — if a real sha256 is
+    # pinned — matches it. A stale/corrupt cache for the same (id, version_pin) is
+    # re-fetched rather than poisoning every future run.
+    need_download = not dest.exists()
+    if dest.exists() and _is_real_sha(feed.sha256) and sha256_file(dest) != feed.sha256:
+        need_download = True
+    if need_download:
+        # Download to a temp sibling, then atomic-rename — a failed or partial
+        # download never leaves a usable-looking dest behind.
+        tmp = dest.with_name(dest.name + ".part")
         try:
-            downloader(feed.url, str(dest))
+            downloader(feed.url, str(tmp))
         except Exception as e:  # noqa: BLE001 - normalise any transport failure
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
             raise IngestError(f"failed to fetch {feed.id} from {feed.url}: {e}") from e
+        os.replace(str(tmp), str(dest))
 
     digest = sha256_file(dest)
     findings = []

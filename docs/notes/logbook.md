@@ -393,6 +393,32 @@ the synthetic golden is replaced by one over the `data/sample/` fixture.
 
 ---
 
+## 2026-06-05 — Ingestion review response (cache safety + real validation)
+
+Review flagged three ingestion majors; all fixed so bad inputs fail cleanly at ingest, not later in OTP.
+
+- **Cache poisoning (major).** `dest.exists()` alone could keep a partial/stale file forever. Now:
+  download to a `.part` temp + **atomic rename** (a failed/partial fetch leaves nothing usable), and
+  skip the download only when the cached file exists **and** matches a pinned real `sha256` — a stale
+  cache that fails its pin is re-fetched.
+- **Shallow GTFS validation (major).** A zip with the right filenames but junk contents used to pass.
+  `validate_gtfs` now parses the CSVs and checks **referential integrity** (`trips`→routes/services,
+  `stop_times`→trips/stops) and **strictly increasing `stop_sequence`** per trip. (Documented as a
+  fast in-process pre-flight; the MobilityData gtfs-validator remains the canonical full check for
+  large national archives, §3.3.)
+- **Non-PBF OSM (major).** Missing `OSMHeader` is now an **ERROR** (was WARNING), so a non-PBF file
+  can't reach graph build; deeper checks (way/node counts, bbox coverage) explicitly deferred.
+- Handbook §3.3 updated to match (atomic fetch + sha-gated cache; the deeper GTFS checks; OSM header
+  ERROR + deferred PBF parsing).
+
+**Verification:** `python -m pytest` → **119 passed**. New: dangling stop/service refs, non-monotone
+`stop_sequence`, non-PBF OSM ERROR, no-partial-on-fetch-failure, stale-cache-vs-pin re-download.
+
+**Next (IO):** `routing/hubs.py` + `routing/decompose.py` — translate `OTPItinerary`/`OTPLeg` into the
+domain model (`Leg` with B1 layer tags, `HubArrival` for B2), the bridge to the pure pipeline.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.
