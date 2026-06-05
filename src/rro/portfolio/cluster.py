@@ -17,14 +17,17 @@ never drops below 2. Fewer than 2 distinct routes → :class:`UnderfullPortfolio
 
 from __future__ import annotations
 
-from rro.models import CLUSTER_LABELS, ScoredCandidate, Strategy
+from rro.models import CLUSTER_LABELS, CLUSTERS, ScoredCandidate, Strategy
 from rro.portfolio.card import build_card
 from rro.routing.deepening import route_signature
 from rro.scoring.robustness import robustness_key
 
 # Fixed, deterministic precedence for resolving a contested route (§7.1). The
-# output strategies are emitted in this order.
+# output strategies are emitted in this order. This is a *permutation* of
+# models.CLUSTERS (which is in Coastline §B4 catalogue order) — the assert guards
+# against the two lists drifting apart.
 CLUSTER_PRECEDENCE = ("fastest", "robust", "low_transfer", "creative")
+assert set(CLUSTER_PRECEDENCE) == set(CLUSTERS) == set(CLUSTER_LABELS)
 
 
 class UnderfullPortfolioError(ValueError):
@@ -63,16 +66,32 @@ def _cluster_sort_key(name: str):
     return key
 
 
-def _distinct(candidates: list) -> list:
-    """Collapse candidates sharing a backbone signature, keeping the fastest (§5.3).
+def _collapse_key(c: ScoredCandidate):
+    """Deterministic preference among same-backbone candidates (handbook §4.3, §5.3).
 
-    Preserves first-occurrence order for determinism.
+    Smaller wins: (1) faster ``E_T_eff_min``; then (2) lower first-mile risk —
+    a non-taxi feeder beats a taxi one, so a taxi feeder survives only when it is
+    *strictly faster* (§4.3); then (3) a stable leg key, so the choice never
+    depends on input order.
+    """
+    first_mile_modes = {l.mode for l in c.legs if l.layer == "first_mile"}
+    risk = 1 if (c.taxi_warning or "taxi" in first_mile_modes) else 0
+    leg_key = tuple((l.layer, l.mode, l.from_, l.to, l.dep, l.arr, l.line) for l in c.legs)
+    return (c.score.E_T_eff_min, risk, leg_key)
+
+
+def _distinct(candidates: list) -> list:
+    """Collapse candidates sharing a backbone signature (§5.3).
+
+    The survivor per signature is chosen by :func:`_collapse_key` — independent of
+    input order. First-occurrence order of distinct signatures is preserved (it
+    does not affect the final clustering, which re-sorts with a total key).
     """
     best = {}
     for c in candidates:
         sig = route_signature(c.legs)
         cur = best.get(sig)
-        if cur is None or c.score.E_T_eff_min < cur.score.E_T_eff_min:
+        if cur is None or _collapse_key(c) < _collapse_key(cur):
             best[sig] = c
     out, seen = [], set()
     for c in candidates:

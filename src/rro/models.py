@@ -12,7 +12,8 @@ from typing import Optional
 # B1 three-layer decomposition (handbook §4.1).
 LAYERS = ("first_mile", "backbone", "last_mile")
 
-# B4 clusters and their Coastline §7 German user-facing labels (handbook §7.1).
+# B4 cluster ids in Coastline §B4 *catalogue* order. The tie-break / output
+# ordering is rro.portfolio.cluster.CLUSTER_PRECEDENCE (a permutation of these).
 CLUSTERS = ("fastest", "robust", "creative", "low_transfer")
 CLUSTER_LABELS = {
     "fastest": "Schnellste",

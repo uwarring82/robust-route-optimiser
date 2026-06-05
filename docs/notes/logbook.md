@@ -303,6 +303,24 @@ real candidates into this now-stable B4→Layer C output.
 
 ---
 
+## 2026-06-05 — Track 1 review response (deterministic collapse)
+
+- **Duplicate-signature collapse was input-order dependent (major).** `_distinct` only replaced
+  on strictly-faster `E_T_eff_min`, so a bus-first vs taxi-first ordering of two same-backbone
+  same-time candidates changed the emitted card (risk/price) — breaking the byte-stable seam and
+  ignoring §4.3's lower-risk-first-mile rule. Added `_collapse_key = (E_T_eff_min, taxi-risk,
+  stable-leg-key)`: faster wins; on a tie the non-taxi feeder wins (taxi survives only when
+  strictly faster); fully order-independent.
+- **Two cluster-order constants (minor).** `models.CLUSTERS` (§B4 catalogue order) vs
+  `cluster.CLUSTER_PRECEDENCE` (tie/output order) could drift. Added a module-load `assert` that
+  they (and `CLUSTER_LABELS`) cover the same ids, plus a test, and clarified the comments.
+
+**Verification:** `python -m pytest` → **81 passed** (+4): collapse prefers non-taxi under both
+input orders, keeps taxi when strictly faster, constants consistent. The synthetic golden is
+byte-identical (collapse only affects duplicate signatures).
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.

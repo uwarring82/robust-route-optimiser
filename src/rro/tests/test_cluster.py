@@ -160,6 +160,44 @@ def test_golden_portfolio_matches():
     assert portfolio_to_dict(_synthetic_portfolio()) == expected
 
 
+def _wuppertal_variant(mode, price, warning, e=259.0):
+    legs = [
+        Leg("first_mile", mode, "Haßlinghausen", "Wuppertal Hbf", _t("07:10"), _t("07:40"), None, 10),
+        Leg("backbone", "rail", "Wuppertal Hbf", "Freiburg (Breisgau) Hbf", _t("07:51"), _t("11:30"), "ICE 9", None),
+    ]
+    score = Score(J=e, Q08_T_eff_min=e, E_T_eff_min=e, creativity=0.1, transfers=1,
+                  min_transfer_slack_min=10, fragile_legs=0, backbone_km=400.0, reference_km=360.0)
+    return ScoredCandidate(legs=legs, score=score, price_eur=price, taxi_warning=warning)
+
+
+@pytest.mark.parametrize("taxi_first", [False, True])
+def test_same_signature_collapse_prefers_non_taxi(taxi_first):
+    # Same backbone, same time: the non-taxi feeder must survive regardless of
+    # input order (handbook §4.3, byte-stable seam).
+    bus = _wuppertal_variant("bus", 10.0, None)
+    taxi = _wuppertal_variant("taxi", 30.0, "Taxi-Verfügbarkeit unsicher")
+    cands = [taxi, bus, _creative()] if taxi_first else [bus, taxi, _creative()]
+    wupp = next(s for s in cluster(cands) if s.legs[0].to == "Wuppertal Hbf")
+    assert wupp.legs[0].mode == "bus"
+    assert wupp.card.price_eur == 10.0
+    assert wupp.card.risks == []
+
+
+def test_same_signature_keeps_taxi_when_strictly_faster():
+    bus = _wuppertal_variant("bus", 10.0, None, e=260.0)
+    taxi = _wuppertal_variant("taxi", 30.0, "Taxi-Verfügbarkeit unsicher", e=255.0)
+    for order in ([bus, taxi, _creative()], [taxi, bus, _creative()]):
+        wupp = next(s for s in cluster(order) if s.legs[0].to == "Wuppertal Hbf")
+        assert wupp.legs[0].mode == "taxi"
+        assert wupp.card.risks == ["Taxi-Verfügbarkeit unsicher"]
+
+
+def test_cluster_order_constants_consistent():
+    from rro.models import CLUSTER_LABELS, CLUSTERS
+    from rro.portfolio.cluster import CLUSTER_PRECEDENCE
+    assert set(CLUSTER_PRECEDENCE) == set(CLUSTERS) == set(CLUSTER_LABELS)
+
+
 def test_golden_card_invariants():
     # The serialised cards obey the Phase A rules end-to-end.
     doc = portfolio_to_dict(_synthetic_portfolio())
