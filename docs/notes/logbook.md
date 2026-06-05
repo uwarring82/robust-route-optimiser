@@ -51,16 +51,17 @@ had accumulated artifacts from a mixed local-git / GitHub-web-upload workflow.
 
 **FAIR roadmap.** Making the project Findable, Accessible, Interoperable, Reusable:
 
-- [x] **F** — Added `CITATION.cff` (author, version, keywords, repo URL) → enables GitHub
-      "Cite this repository" + machine-readable citation. *(ORCID still TODO.)*
+- [x] **F** — Added `CITATION.cff` (author, ORCID, version, keywords, repo URL) → enables GitHub
+      "Cite this repository" + machine-readable citation.
 - [x] **F** — Added `.zenodo.json` deposition metadata + DOI badge placeholder in README.
-      *(Activation steps below.)*
+      *(Activation steps below; DOI deferred by decision — see addendum.)*
 - [x] **A** — Landing page + licenses openly reachable (Pages live from `./docs`, licenses stated).
-- [x] **I** — Added `codemeta.json` (CodeMeta 3.0 / schema.org software metadata).
+- [x] **I** — Added `codemeta.json` (CodeMeta 3.0 / schema.org software metadata, ORCID via `@id`).
 - [x] **R** — Code license decided (**MIT**) and added as `LICENSE-CODE`; README licence section updated.
 - [x] **R** — Re-added `.gitignore`.
+- [x] **R** — Added `CONTRIBUTING.md` (governance via Harbour Council-3, coastline/handbook split,
+      conventions, B1–B7 falsification path); linked from README.
 - [x] **Hygiene** — README "Project structure" synced with reality.
-- [ ] **R** — Optional: add `CONTRIBUTING.md` (governance currently via Harbour Council-3).
 
 **Zenodo activation (manual, when ready to mint a DOI).**
 
@@ -73,8 +74,20 @@ had accumulated artifacts from a mixed local-git / GitHub-web-upload workflow.
 
 **Open follow-ups.**
 
-- ORCID iD needed for `CITATION.cff` / `.zenodo.json` / `codemeta.json` (Findable metadata).
-  Add it and uncomment the `orcid:` line in `CITATION.cff`.
+- DOI: deferred by decision (see addendum below). Zenodo activation steps stand ready for
+  when a release is cut.
+
+---
+
+## 2026-06-05 — Addendum: ORCID added, CONTRIBUTING added, DOI deferred
+
+- **ORCID 0000-0001-8081-9718** added for the author across `CITATION.cff`
+  (`orcid:` URL form), `.zenodo.json` (`orcid` bare id), and `codemeta.json` (Person `@id`);
+  also surfaced in the README author block. Checksum verified (ISO 7064 MOD 11-2). This
+  closes the last open Findable-metadata item.
+- **`CONTRIBUTING.md`** added at repo root and linked from README.
+- **DOI** explicitly **deferred** at the author's request — to be minted later via the
+  Zenodo activation steps above. The placeholder DOI badge remains in README until then.
 
 ---
 

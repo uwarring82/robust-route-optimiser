@@ -27,6 +27,7 @@
   "author": [
     {
       "@type": "Person",
+      "@id": "https://orcid.org/0000-0001-8081-9718",
       "givenName": "Ulrich",
       "familyName": "Warring",
       "affiliation": {

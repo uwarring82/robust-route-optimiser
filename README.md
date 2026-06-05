@@ -46,6 +46,7 @@ robust-route-optimiser/
 ├── CITATION.cff                   # Machine-readable citation (FAIR · Findable)
 ├── codemeta.json                  # Software metadata, CodeMeta (FAIR · Interoperable)
 ├── .zenodo.json                   # Zenodo archival metadata (FAIR · Findable)
+├── CONTRIBUTING.md                # How to contribute (governance, conventions)
 ├── README.md                      # This file
 ├── LICENSE                        # Documentation licence (CC BY-SA 4.0)
 └── LICENSE-CODE                   # Code licence (MIT)
@@ -103,9 +104,15 @@ A persistent **DOI** will be minted on the first [Zenodo](https://zenodo.org/)-a
 (deposition metadata is prepared in [`.zenodo.json`](.zenodo.json)). Until then, please cite the
 version tag (`v0.6.0-rc1`) and the repository URL.
 
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) — how decisions are made (Council-3), the
+coastline/handbook separation, conventions, and how to raise falsification challenges to
+boundaries B1–B7.
+
 ## Author
 
-**Ulrich Warring**
+**Ulrich Warring** · [ORCID 0000-0001-8081-9718](https://orcid.org/0000-0001-8081-9718)
 Physikalisches Institut, Albert-Ludwigs-Universität Freiburg
 
 *High impact, no fame.*

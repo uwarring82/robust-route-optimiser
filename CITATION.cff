@@ -6,8 +6,7 @@ authors:
   - family-names: Warring
     given-names: Ulrich
     affiliation: "Physikalisches Institut, Albert-Ludwigs-Universität Freiburg"
-    # TODO: add ORCID iD to complete Findable metadata, e.g.:
-    # orcid: "https://orcid.org/0000-0000-0000-0000"
+    orcid: "https://orcid.org/0000-0001-8081-9718"
 abstract: >-
   RRO is a state-dependent multimodal routing framework for robust travel
   decisions on the Haßlinghausen → Freiburg (Breisgau) corridor. It treats the
