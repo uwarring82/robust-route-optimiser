@@ -76,7 +76,7 @@ G_base  →  [C: binary gates]  →  G″  →  [B: structural]  →  G′  → 
 | Component | Status |
 |---|---|
 | Coastline architecture | ✅ v0.6.0-rc1 |
-| Phase A — Static prototype | 🔲 Not started |
+| Phase A — Static prototype | 🔨 Engine implemented + tested offline (160 tests); live OTP integration pending |
 | Phase B — Real-time + G′ | 🔲 Not started |
 | Phase C — Historical conditioning | 🔲 Not started |
 
