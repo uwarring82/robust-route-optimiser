@@ -564,6 +564,30 @@ identifiers via fromPlace/toPlace. Both goldens byte-identical.
 
 ---
 
+## 2026-06-06 — Milestone: Phase A engine algorithmically complete (offline)
+
+Marking a clean boundary. The Phase A engine is implemented, tested, and regression-guarded
+end-to-end **offline** (two independent reviews concur, no blocking findings on `c511751`).
+
+**Done (all under `src/rro/`, 160 tests, no skips):** strict config; B1 decomposition; B2 hub
+discovery + static dominance; B3 progressive deepening (depth ladder, dedup pool, ε-termination,
+deterministic collapse); scoring (deterministic `J`, two-pass `C(r)`/R, structural-robustness proxy);
+B4 clustering; canonical JSON + §7 cards; the OTP GraphQL `plan` client (pinned OTP 2.9.0, injectable
+transport); feed registry + GTFS/OSM ingestion (atomic cache, structural validation); and the
+`plan_portfolio` pipeline. Two goldens (B4-level + full-pipeline) lock the output.
+
+**Remaining = live-OTP infrastructure (a different context: JVM / feeds / OSM), NOT new algorithms:**
+
+1. Stand up OTP 2.9.0 and build a graph from the pinned corridor GTFS + OSM PBF (`graph/build.py`).
+2. Implement `otp_client.isochrone` + `hubs.enumerate_hubs` (one-to-many hub discovery).
+3. Make `origin`/`destination` and `HubArrival.hub_id` resolvable OTP places (stop ids / coords) for
+   the live run — see the §2.6 / §3.5 precondition.
+4. Replace the synthetic pipeline golden with one captured from real OTP responses over `data/sample/`.
+
+Parked here intentionally; the live integration is the focused next session.
+
+---
+
 ## Future entries
 
 Append new operational entries below as the project progresses.

@@ -223,8 +223,8 @@ Per Coastline §1.2, the primary routing engine is **OpenTripPlanner 2.x**, quer
 
 | Key | Type | Default | Meaning / Coastline ref |
 |---|---|---|---|
-| `origin` | string | — (required) | Origin location (e.g. Haßlinghausen). §0 |
-| `destination` | string | — (required) | Destination (e.g. Freiburg (Breisgau) Hbf). §0 |
+| `origin` | string | — (required) | Origin place. A display name (e.g. Haßlinghausen) is fine for offline tests, but a **live** run needs an OTP-resolvable place — a stop id `FeedId:StopId` or `"lat,lon"` (§3.5). §0 |
+| `destination` | string | — (required) | Destination place; same resolvability rule as `origin` (§3.5). §0 |
 | `departure_time` | string (ISO 8601) | — (required via config **or** `--depart`) | Query departure instant; the `--depart` CLI flag overrides it (§8.1). Echoed to `query.departure_time`. |
 | `t_first_minutes` | int | `45` | First-mile hub window `T_first` (B2). |
 | `depths` | int | `3` | Progressive-deepening depth count: Depth 0/1/2 (B3). |
